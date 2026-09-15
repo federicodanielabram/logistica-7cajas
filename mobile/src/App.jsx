@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { hoyISO } from './lib/formato'
 import ActualizacionDisponible from './components/ActualizacionDisponible'
@@ -324,6 +324,46 @@ export default function App() {
     setSeleccionadas(new Set())
     setPantalla('identificar')
   }
+
+  // Botón/gesto "atrás" de Android: como la app es una sola pantalla sin
+  // rutas, por default Android la cerraría de un toque. Atrapamos el "atrás"
+  // (History API) y lo mapeamos a la acción más segura según dónde estemos.
+  // En "identificar" (la pantalla raíz) lo dejamos sin atrapar, así ahí sí
+  // funciona como salir de la app normalmente.
+  const manejarAtrasRef = useRef(() => {})
+  useEffect(() => {
+    manejarAtrasRef.current = () => {
+      switch (pantalla) {
+        case 'ordenar_inicial':
+          setPantalla('seleccionar')
+          break
+        case 'yendo':
+          if (historial.length > 0) onDeshacer()
+          break
+        case 'editar':
+          setPantalla('resumen')
+          break
+        case 'reordenar_ruta':
+          // No persiste el reordenamiento en curso (eso lo hace el botón
+          // "Siguiente" de esa pantalla) — solo cancela y vuelve.
+          setPantalla('yendo')
+          break
+        default:
+          break
+      }
+    }
+  })
+
+  useEffect(() => {
+    function alAtras() {
+      if (pantalla === 'identificar') return
+      window.history.pushState({}, '') // repone la "trampa" para el próximo atrás
+      manejarAtrasRef.current()
+    }
+    if (pantalla !== 'identificar') window.history.pushState({}, '')
+    window.addEventListener('popstate', alAtras)
+    return () => window.removeEventListener('popstate', alAtras)
+  }, [pantalla])
 
   function pantallaActual() {
   if (pantalla === 'identificar') {
