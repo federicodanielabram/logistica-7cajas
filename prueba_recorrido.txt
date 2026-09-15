@@ -1,0 +1,10 @@
+	14/09/2026	SEDA MO	La Metro Cheff		Solo entrega	PAGADO	Sí	30716012859	4.300	40	172.000	CABA	Barracas	Av. Regimiento de Patricios 1202
+Cierra a las 13hs	14/09/2026	SEDA AO	Parrilla Nuñez		Solo entrega	Transferencia	No	20244852522	4.200	60	252.000	CABA	Nuñez	Montañeses 2785
+	14/09/2026	SEDA MO	Hanu Sushi		Solo entrega	Solo entrega	No	30715118110	4.300	60	258.000	CABA	Florida	Maipú 3907
+Retira	14/09/2026	SEDA AO	Cliente desconocido		Solo entrega	Efectivo	No		4.200	20	84.000	RETIRA EN DEPÓSITO	-	-
+	14/09/2026	SEDA MO	Distribuidora Diagonal (Josi La Pampa)		Solo entrega	Efectivo	No	278237320	4.400	1000	4.400.000	TRANSPORTES	La Pampa	5 n 1249
+Entregar antes de las 12hs	14/09/2026	SEDA AO	Radici (LP)		Solo entrega	Efectivo	No	33715012729	4.000	40	160.000	LA PLATA	La Plata Casco	51/22y23 num 1366
+	14/09/2026	SEDA MO	El Tonel Verde		Solo entrega	Transferencia	Sí	27277420584	4.200	60	240.000	LA PLATA	Berisso	4 esquina 188
+No facturar	14/09/2026	SEDA AO	Moro Finca y Fonda		Solo entrega	Solo entrega	No	33715880569	4.300	80	338.000	LA PLATA	City Bell	12 entre 487 y 470
+	14/09/2026	SEDA MO	Pizzeria Tokio		Solo entrega	PAGADO	No	30629091501	4.300	40	166.000	ZONA OESTE	Moron	Videla 841
+Cierra a las 13hs	14/09/2026	SEDA AO	Parador lo de Tom		Solo entrega	Monotrib	No	23404897209	4.200	100	420.000	LA PLATA	La Plata Casco	Av 72 e/ 15y16 1014

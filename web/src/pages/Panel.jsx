@@ -1,0 +1,90 @@
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
+import { hoyISO } from '../lib/recorrido'
+import { formatoPago } from '../lib/formato'
+
+const ESTADO_COLOR = {
+  en_espera: 'amarillo',
+  entregado: 'verde',
+  descartado: 'rojo',
+}
+
+function ColumnaChofer({ chofer, fecha }) {
+  const [items, setItems] = useState([])
+
+  async function cargar() {
+    const { data, error } = await supabase
+      .from('parada_chofer')
+      .select('*, parada:parada_id(*)')
+      .eq('fecha', fecha)
+      .eq('chofer_id', chofer.id)
+      .order('orden', { ascending: true })
+    if (!error) setItems(data ?? [])
+  }
+
+  useEffect(() => {
+    cargar()
+    const canal = supabase
+      .channel(`parada_chofer_${chofer.id}_${fecha}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'parada_chofer', filter: `chofer_id=eq.${chofer.id}` },
+        () => cargar()
+      )
+      .subscribe()
+    return () => supabase.removeChannel(canal)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chofer.id, fecha])
+
+  return (
+    <div className="columna-chofer">
+      <h3>{chofer.nombre}</h3>
+      {items.length === 0 && <p className="ayuda">Todavía no eligió sus paradas.</p>}
+      <ul className="checklist">
+        {items.map((item) => {
+          const p = item.parada
+          const litros = item.litros_confirmado ?? p.litros
+          const producto = item.producto_confirmado ?? p.producto
+          const formaPago = item.forma_pago_confirmada ?? p.forma_pago
+          const monto = item.monto_confirmado ?? p.monto_efectivo
+          return (
+            <li key={item.id} className={`item-${ESTADO_COLOR[item.estado]}`}>
+              <div className="item-linea-principal">
+                <strong>{p.cliente}</strong>
+                {item.editado && <span className="tag-editado">editado</span>}
+              </div>
+              {p.es_transporte && <div className="subtitulo-chico">TRANS. {p.empresa_transporte}</div>}
+              <div className="item-detalle">
+                {litros ?? '—'}lts · {producto} · {formatoPago(formaPago, monto)}
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+export default function Panel() {
+  const [choferes, setChoferes] = useState([])
+  const fecha = hoyISO()
+
+  useEffect(() => {
+    supabase
+      .from('chofer')
+      .select('*')
+      .order('nombre')
+      .then(({ data }) => setChoferes(data ?? []))
+  }, [])
+
+  return (
+    <div className="pagina">
+      <h2>Reparto de hoy — {fecha}</h2>
+      <div className="columnas-choferes">
+        {choferes.map((chofer) => (
+          <ColumnaChofer key={chofer.id} chofer={chofer} fecha={fecha} />
+        ))}
+      </div>
+    </div>
+  )
+}

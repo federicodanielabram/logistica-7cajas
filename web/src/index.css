@@ -1,0 +1,139 @@
+:root {
+  color-scheme: light;
+  /* Paleta tomada del isologo de 7 Cajas (naranja + crudo). Los colores de
+     estado del checklist (amarillo/verde/rojo) quedan aparte a propósito —
+     son semáforo funcional, no identidad de marca. */
+  --bg: #fdf6ec;
+  --panel: #ffffff;
+  --texto: #2b1c0f;
+  --muted: #8a7a68;
+  --borde: #f0dfc4;
+  --acento: #f5a623;
+  --acento-oscuro: #d98c12;
+  --amarillo: #fde68a;
+  --amarillo-borde: #f5c542;
+  --verde: #bbf7d0;
+  --verde-borde: #22c55e;
+  --rojo: #fecaca;
+  --rojo-borde: #ef4444;
+  font-family: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; background: var(--bg); color: var(--texto); }
+
+button {
+  font: inherit;
+  cursor: pointer;
+  background: var(--acento);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+}
+button:hover:not(:disabled) { background: var(--acento-oscuro); }
+button:disabled { opacity: 0.5; cursor: default; }
+button.link { background: none; color: var(--muted); padding: 4px 8px; }
+button.link:hover:not(:disabled) { background: none; color: var(--texto); }
+
+input, textarea {
+  font: inherit;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.pantalla-centrada {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tarjeta-login {
+  background: var(--panel);
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tarjeta-login h1 {
+  margin: 0;
+  text-align: center;
+  font-family: 'Archivo Black', sans-serif;
+  color: var(--acento-oscuro);
+  letter-spacing: 0.02em;
+}
+.tarjeta-login .logo-img { width: 56px; margin: 0 auto 4px; display: block; }
+.subtitulo { margin: -8px 0 8px; color: var(--muted); text-align: center; }
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 10px 24px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--borde);
+}
+.header .logo { display: flex; align-items: center; gap: 8px; }
+.header .logo img { height: 32px; }
+.header .logo span {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 1.1em;
+  letter-spacing: 0.02em;
+  color: var(--acento-oscuro);
+}
+.header nav { display: flex; gap: 16px; flex: 1; }
+.header nav a { color: var(--muted); text-decoration: none; padding: 4px 0; }
+.header nav a.active { color: var(--texto); border-bottom: 2px solid var(--acento); }
+
+main { padding: 24px; max-width: 1100px; margin: 0 auto; }
+
+.pagina h2 { margin-top: 0; }
+.ayuda { color: var(--muted); font-size: 0.9em; }
+.error { color: var(--rojo-borde); }
+.ok { color: var(--verde-borde); }
+
+.pegado { font-family: monospace; font-size: 0.85em; }
+
+.vista-previa { margin-top: 20px; }
+.tabla-scroll { overflow-x: auto; margin: 12px 0; }
+table { border-collapse: collapse; width: 100%; background: var(--panel); }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--borde); font-size: 0.9em; white-space: nowrap; }
+tr.fila-transporte { background: #fff1de; }
+
+.subtitulo-chico { font-size: 0.78em; color: var(--muted); }
+
+.errores { background: #fff7ed; border: 1px solid #fdba74; border-radius: 8px; padding: 12px; margin: 12px 0; }
+.errores ul { margin: 8px 0 0; padding-left: 20px; }
+
+.columnas-choferes { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 720px) {
+  .columnas-choferes { grid-template-columns: 1fr; }
+}
+
+.columna-chofer { background: var(--panel); border-radius: 12px; padding: 16px; }
+.checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.checklist li {
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+}
+.item-amarillo { background: var(--amarillo); border-color: var(--amarillo-borde); }
+.item-verde { background: var(--verde); border-color: var(--verde-borde); }
+.item-rojo { background: var(--rojo); border-color: var(--rojo-borde); }
+
+.item-linea-principal { display: flex; justify-content: space-between; align-items: center; }
+.item-detalle { font-size: 0.85em; margin-top: 2px; }
+.tag-editado {
+  font-size: 0.7em;
+  background: rgba(0,0,0,0.1);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
