@@ -127,20 +127,6 @@ export default function App() {
     }
   }, [chofer, seleccionadas, ordenLocal, pantalla])
 
-  // Botón/gesto "atrás" de Android en "Elegí tus paradas": vuelve a la
-  // pantalla de Tito/Meme. Empuja UNA sola marca al entrar a esta pantalla
-  // (nada más) y la saca sola al irse — así no se acumulan entradas de
-  // historial de más ni se mezcla con otras pantallas.
-  useEffect(() => {
-    if (pantalla !== 'seleccionar') return
-    window.history.pushState({ pantalla: 'seleccionar' }, '')
-    function alAtras() {
-      setPantalla('identificar')
-    }
-    window.addEventListener('popstate', alAtras)
-    return () => window.removeEventListener('popstate', alAtras)
-  }, [pantalla])
-
   async function onElegirChofer(choferElegido) {
     setChofer(choferElegido)
 
