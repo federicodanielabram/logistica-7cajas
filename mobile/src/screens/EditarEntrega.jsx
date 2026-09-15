@@ -54,17 +54,17 @@ export default function EditarEntrega({ bufferInicial, onListo }) {
       )}
 
       {seccion === 'litros' && (
-        <div className="grilla-opciones">
+        <div className="lista">
           {OPCIONES_LITROS.map((v) => (
             <button
               key={v}
-              className="opcion"
+              className={`item ${v === buffer.litros ? 'item-marcado' : ''}`}
               onClick={() => {
                 setBuffer((b) => ({ ...b, litros: v }))
                 setSeccion(null)
               }}
             >
-              {v}
+              <span className="item-nombre">{v}lts</span>
             </button>
           ))}
         </div>

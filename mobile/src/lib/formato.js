@@ -20,5 +20,5 @@ export function resumenTexto({ litros, producto, cliente, formaPago, monto }) {
   return `${litros ?? '—'}lts ${producto} — ${cliente} — ${formatoPago(formaPago, monto)}`
 }
 
-/** Múltiplos de 20, de 20 a 400 litros, para el selector rápido. */
-export const OPCIONES_LITROS = Array.from({ length: 20 }, (_, i) => (i + 1) * 20)
+/** Múltiplos de 20, de 20 a 1000 litros, para el selector (cubre también los pedidos grandes de zona TRANSPORTES). */
+export const OPCIONES_LITROS = Array.from({ length: 50 }, (_, i) => (i + 1) * 20)
