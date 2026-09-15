@@ -6,7 +6,10 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' en vez de 'autoUpdate': si publicamos un cambio mientras un
+      // chofer está repartiendo, no le recargamos la pantalla solos a mitad
+      // de una entrega — le avisamos y decide él cuándo actualizar.
+      registerType: 'prompt',
       manifest: {
         name: '7 Cajas — Reparto',
         short_name: '7 Cajas',

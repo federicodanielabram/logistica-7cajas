@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { hoyISO } from './lib/formato'
+import ActualizacionDisponible from './components/ActualizacionDisponible'
 import Identificar from './screens/Identificar'
 import SeleccionarParadas from './screens/SeleccionarParadas'
 import OrdenarLista from './screens/OrdenarLista'
@@ -10,6 +11,37 @@ import EditarEntrega from './screens/EditarEntrega'
 import CerrarDia from './screens/CerrarDia'
 
 const fecha = hoyISO()
+const CLAVE_SESION = '7cajas_sesion_chofer'
+
+// Guardamos localmente quién sos y, si todavía no apretaste "Empezar", tu
+// selección/orden de paradas en curso — así una recarga (una actualización
+// de la PWA, quedarte sin batería, lo que sea) no te hace perder el progreso
+// ni te obliga a tocar tu nombre de nuevo. Una vez que "Empezar" corre, la
+// base de datos pasa a ser la fuente de verdad (ver `onElegirChofer`).
+function guardarSesionLocal(datos) {
+  try {
+    localStorage.setItem(CLAVE_SESION, JSON.stringify({ fecha, ...datos }))
+  } catch {
+    // localStorage puede fallar (modo privado, cuota llena) — no es grave, seguimos sin persistir.
+  }
+}
+
+function leerSesionLocal() {
+  try {
+    const guardada = JSON.parse(localStorage.getItem(CLAVE_SESION) || 'null')
+    return guardada && guardada.fecha === fecha ? guardada : null
+  } catch {
+    return null
+  }
+}
+
+function borrarSesionLocal() {
+  try {
+    localStorage.removeItem(CLAVE_SESION)
+  } catch {
+    // ignorar
+  }
+}
 
 // Convierte una fila de `parada_chofer` (+ su `parada` asociada) a lo que
 // consumen las pantallas del recorrido.
@@ -60,6 +92,40 @@ export default function App() {
         setCargandoChoferes(false)
       })
   }, [])
+
+  // Al abrir la app, si había una sesión de hoy guardada, retomamos sin
+  // pedir de nuevo quién sos.
+  useEffect(() => {
+    const guardada = leerSesionLocal()
+    if (!guardada?.chofer) return
+    if (guardada.pantalla === 'seleccionar' || guardada.pantalla === 'ordenar_inicial') {
+      // Todavía no se había apretado "Empezar" — no hay nada en la base
+      // para esto, confiamos en lo que quedó guardado en el celular.
+      setChofer(guardada.chofer)
+      setSeleccionadas(new Set(guardada.seleccionadas ?? []))
+      setOrdenLocal(guardada.ordenLocal ?? [])
+      setPantalla(guardada.pantalla)
+      supabase
+        .from('parada')
+        .select('*')
+        .eq('fecha', fecha)
+        .order('orden_planilla', { ascending: true })
+        .then(({ data }) => setParadasDelDia(data ?? []))
+    } else {
+      // Ya se había arrancado el recorrido — la base manda, no lo guardado acá.
+      onElegirChofer(guardada.chofer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Mientras el chofer todavía está eligiendo/ordenando (antes de
+  // "Empezar"), vamos guardando el progreso local por las dudas.
+  useEffect(() => {
+    if (!chofer) return
+    if (pantalla === 'seleccionar' || pantalla === 'ordenar_inicial') {
+      guardarSesionLocal({ chofer, seleccionadas: [...seleccionadas], ordenLocal, pantalla })
+    }
+  }, [chofer, seleccionadas, ordenLocal, pantalla])
 
   async function onElegirChofer(choferElegido) {
     setChofer(choferElegido)
@@ -251,6 +317,7 @@ export default function App() {
       .update({ cerrado_en: new Date().toISOString() })
       .eq('chofer_id', chofer.id)
       .eq('fecha', fecha)
+    borrarSesionLocal()
     setChofer(null)
     setRuta([])
     setHistorial([])
@@ -258,6 +325,7 @@ export default function App() {
     setPantalla('identificar')
   }
 
+  function pantallaActual() {
   if (pantalla === 'identificar') {
     return <Identificar choferes={choferes} cargando={cargandoChoferes} onElegir={onElegirChofer} />
   }
@@ -331,4 +399,12 @@ export default function App() {
   }
 
   return null
+  }
+
+  return (
+    <>
+      {pantallaActual()}
+      <ActualizacionDisponible />
+    </>
+  )
 }
