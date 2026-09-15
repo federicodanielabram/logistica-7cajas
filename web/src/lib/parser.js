@@ -113,7 +113,10 @@ export function parsearRecorrido(textoPegado) {
 
     paradas.push({
       orden_planilla: i,
-      fecha,
+      // OJO: la fecha real que se guarda no es esta columna de la planilla
+      // (`fecha`, usada arriba solo para detectar si la fila es válida) —
+      // es la fecha de hoy, asignada en `actualizarRecorrido()`. Así no
+      // depende de que el vendedor haya tipeado bien la fecha en Sheets.
       producto,
       cliente,
       notas: fila.notas || null,

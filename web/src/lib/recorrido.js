@@ -41,7 +41,12 @@ export async function actualizarRecorrido(paradas, fecha) {
   if (errDelete) throw errDelete
 
   if (paradas.length > 0) {
-    const { error: errInsert } = await supabase.from('parada').insert(paradas)
+    // La fecha guardada es la de hoy (el momento de actualizar), no la que
+    // diga la columna Fecha de la planilla — evita que un typo o una fila
+    // vieja sin actualizar en Sheets haga que la parada no aparezca donde
+    // corresponde.
+    const paradasConFecha = paradas.map((p) => ({ ...p, fecha }))
+    const { error: errInsert } = await supabase.from('parada').insert(paradasConFecha)
     if (errInsert) throw errInsert
   }
 
