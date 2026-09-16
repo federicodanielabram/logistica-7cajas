@@ -8,6 +8,7 @@ export default function Yendo({ parada, puedeDeshacer, onEntregado, onSiguienteC
         <div className="cliente-grande">{parada.cliente}</div>
         {parada.es_transporte && <div className="item-subtitulo">TRANS. {parada.empresa_transporte}</div>}
         {parada.direccion ? <div className="direccion">{parada.direccion}</div> : null}
+        {parada.horario ? <div className="item-subtitulo">🕒 {parada.horario}</div> : null}
         {parada.notas ? <div className="notas">📌 {parada.notas}</div> : null}
       </div>
       <div>

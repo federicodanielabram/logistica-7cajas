@@ -53,6 +53,7 @@ function aItemRuta(pc, parada) {
     es_transporte: parada.es_transporte,
     empresa_transporte: parada.empresa_transporte,
     direccion: parada.direccion,
+    horario: parada.horario,
     notas: parada.notas,
     litros: parada.litros,
     producto: parada.producto,

@@ -1,33 +1,40 @@
 // Parser del recorrido pegado desde Google Sheets.
 //
-// El vendedor selecciona toda la pestaña del día (Ctrl+A) y copia (Ctrl+C).
-// Al pegar en un <textarea>, el navegador recibe texto plano separado por
-// tabs entre columnas y saltos de línea entre filas (formato TSV) — así es
-// como Sheets/Excel exportan una selección al portapapeles. No hace falta
-// ninguna IA para esto: es un formato mecánico y siempre en el mismo orden.
+// La hoja real es SEMANAL (no una pestaña por día) — el vendedor pega el
+// contenido completo, con pedidos de varios días mezclados, y acá adentro
+// nos quedamos solo con las filas de la fecha que nos interesa (hoy). No
+// hace falta detectar el encabezado por separado: cualquier fila cuya
+// columna "Fecha" no matchee la fecha objetivo (sea el encabezado, un
+// bloque de resumen arriba de la tabla, o un pedido de otro día) se ignora
+// en silencio. Es texto TSV (tabs entre columnas) — no requiere IA.
 //
 // ⚠️ El orden de columnas de abajo (COLUMNAS) está armado a partir de una
-// captura de la planilla real. Si al pegar los datos de verdad el parser
-// interpreta mal alguna columna, es cuestión de reordenar este array — no
-// hace falta tocar nada más. La vista previa (ver ActualizarRecorrido.jsx)
-// existe justamente para detectar esto antes de confirmar.
+// captura real de la hoja semanal de la distribuidora. Si el parser
+// interpreta mal algo, es cuestión de reordenar este array. La vista previa
+// (ver ActualizarRecorrido.jsx) existe para detectar esto antes de confirmar.
 const COLUMNAS = [
-  'notas',
-  'fecha',
-  'producto',
-  'cliente',
-  '_ignorar_dropdown',
-  '_ignorar_solo_entrega',
-  'forma_pago',
-  '_ignorar_facturado',
-  '_ignorar_cuit',
-  'precio_unitario',
-  'litros',
-  'total',
-  'zona',
-  'barrio',
-  'direccion',
-  '_ignorar_telefono',
+  '_ignorar_copiar_facturas', // 0
+  'notas', // 1 — Observaciones
+  '_ignorar_otros_datos', // 2
+  'fecha', // 3
+  'litros', // 4 — CANTIDAD LTS
+  'producto', // 5 — SEDA MO / SEDA AO / LOT / ARECO / SEDA OLIVA / combinaciones...
+  'cliente', // 6 — EMPRESA
+  '_ignorar_remito', // 7
+  '_ignorar_entregado', // 8 — columna vieja de seguimiento manual, ya no la usamos
+  'forma_pago', // 9
+  '_ignorar_facturacion', // 10
+  '_ignorar_cuit', // 11
+  '_ignorar_fc_numero', // 12
+  'precio_unitario', // 13
+  '_ignorar_envio', // 14
+  'total', // 15
+  '_ignorar_zona', // 16 — no lo usamos por ahora
+  '_ignorar_localidad', // 17
+  'direccion', // 18
+  '_ignorar_provincia', // 19
+  'empresa_transporte', // 20 — "Transporte": si viene con algo, es una parada de zona TRANSPORTES
+  'horario', // 21 — horario de atención del cliente
 ]
 
 // "4.000" -> 4000 · "$2.800.000" -> 2800000 · "1.234,50" -> 1234.5
@@ -41,7 +48,7 @@ function parseNumeroAR(texto) {
   return Number.isNaN(numero) ? null : numero
 }
 
-// "31/08/2026" -> "2026-08-31" (ISO, para guardar como `date` en Postgres)
+// "31/08/2026" -> "2026-08-31" (ISO, para comparar contra la fecha de hoy)
 function parseFechaAR(texto) {
   const match = String(texto || '').trim().match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/)
   if (!match) return null
@@ -49,46 +56,25 @@ function parseFechaAR(texto) {
   return `${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`
 }
 
-function parseProducto(texto) {
-  const t = String(texto || '').toUpperCase()
-  if (t.includes('AO')) return 'AO'
-  if (t.includes('MO')) return 'MO'
-  return null
-}
-
-function esSiNoTruthy(texto) {
-  return /^s[ií]$/i.test(String(texto || '').trim())
-}
-
 /**
- * Parsea el texto pegado en filas de parada.
- * Devuelve { paradas, errores } — `errores` son filas que no se pudieron
- * interpretar (se muestran en la vista previa para que el vendedor decida).
+ * Parsea el texto pegado y devuelve solo las paradas de `fechaObjetivo`
+ * (formato ISO yyyy-mm-dd — normalmente hoy). Todo lo demás (otros días,
+ * encabezados, bloques de resumen, filas vacías al final) se descarta en
+ * silencio. `errores` son filas *de la fecha objetivo* que igual no se
+ * pudieron interpretar (falta cliente o producto) — esas sí se muestran,
+ * porque son un problema real de datos que vale la pena revisar.
  */
-export function parsearRecorrido(textoPegado) {
+export function parsearRecorrido(textoPegado, fechaObjetivo) {
   const lineas = textoPegado
     .split(/\r?\n/)
     .map((l) => l.replace(/\r/g, ''))
     .filter((l) => l.trim().length > 0)
 
-  if (lineas.length === 0) {
-    return { paradas: [], errores: [] }
-  }
-
-  // Detección de encabezado: si la columna "fecha" de la primera fila no
-  // parsea como fecha válida, asumimos que es una fila de títulos y la
-  // salteamos. Así funciona tanto si el vendedor copia con título como sin.
-  const primeraFilaCols = lineas[0].split('\t')
-  const primeraEsEncabezado = !parseFechaAR(primeraFilaCols[COLUMNAS.indexOf('fecha')])
-  const filasDeDatos = primeraEsEncabezado ? lineas.slice(1) : lineas
-
   const paradas = []
   const errores = []
 
-  filasDeDatos.forEach((linea, i) => {
+  lineas.forEach((linea, i) => {
     const columnas = linea.split('\t')
-    // Si la fila entera está vacía en el contenido (Ctrl+A suele traer
-    // columnas/filas de más al final), la ignoramos en silencio.
     if (columnas.every((c) => !c.trim())) return
 
     const fila = {}
@@ -97,41 +83,35 @@ export function parsearRecorrido(textoPegado) {
     })
 
     const fecha = parseFechaAR(fila.fecha)
-    const producto = parseProducto(fila.producto)
-    const cliente = fila.cliente
+    if (!fecha || fecha !== fechaObjetivo) return // no es de hoy (o es basura/encabezado)
 
-    if (!fecha || !producto || !cliente) {
-      errores.push({ linea: i + 1, texto: linea, motivo: 'Falta fecha, producto o cliente' })
+    const cliente = fila.cliente
+    const producto = fila.producto
+    if (!cliente || !producto) {
+      errores.push({ linea: i + 1, texto: linea, motivo: 'Falta cliente o producto en una fila de hoy' })
       return
     }
 
-    const zona = fila.zona
-    const esTransporte = /transportes?/i.test(zona)
     const formaPago = fila.forma_pago
     const total = parseNumeroAR(fila.total)
     const esEfectivo = /efectivo/i.test(formaPago)
+    const empresaTransporte = fila.empresa_transporte
+    const esTransporte = Boolean(empresaTransporte)
 
     paradas.push({
-      orden_planilla: i,
-      // OJO: la fecha real que se guarda no es esta columna de la planilla
-      // (`fecha`, usada arriba solo para detectar si la fila es válida) —
-      // es la fecha de hoy, asignada en `actualizarRecorrido()`. Así no
-      // depende de que el vendedor haya tipeado bien la fecha en Sheets.
+      orden_planilla: paradas.length,
       producto,
       cliente,
       notas: fila.notas || null,
+      horario: fila.horario || null,
       forma_pago: formaPago || null,
       monto_efectivo: esEfectivo ? total : null,
       precio_unitario: parseNumeroAR(fila.precio_unitario),
       litros: parseNumeroAR(fila.litros),
       total,
-      zona: zona || null,
-      barrio: fila.barrio || null,
       direccion: fila.direccion || null,
       es_transporte: esTransporte,
-      // En las filas de zona TRANSPORTES el nombre del transportista ya
-      // viene en la columna "cliente" de la planilla (ver notas del proyecto).
-      empresa_transporte: esTransporte ? cliente : null,
+      empresa_transporte: esTransporte ? empresaTransporte : null,
     })
   })
 

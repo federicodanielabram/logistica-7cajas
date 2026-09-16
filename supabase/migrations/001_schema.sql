@@ -34,16 +34,17 @@ create table if not exists parada (
   fecha date not null,
   orden_planilla int not null,          -- orden de la fila en la planilla pegada
   cliente text not null,
-  producto text not null check (producto in ('MO', 'AO')),
+  producto text not null,               -- "SEDA MO" | "SEDA AO" | "LOT" | "ARECO" | combinaciones... tal cual la planilla, sin forzar categorías
   litros int,
   precio_unitario numeric,
   total numeric,
   forma_pago text,                      -- "Efectivo" | "Transferencia" | "PAGADO" | ... tal cual la planilla
   monto_efectivo numeric,               -- solo tiene sentido si forma_pago = Efectivo
-  zona text,
-  barrio text,
+  zona text,                            -- sin usar por ahora (no viene de la hoja semanal)
+  barrio text,                          -- sin usar por ahora
   direccion text,
-  notas text,                           -- instrucciones del cliente, tal cual la planilla
+  horario text,                         -- horario de atención del cliente
+  notas text,                           -- instrucciones del cliente (Observaciones en la planilla)
   es_transporte boolean not null default false,
   empresa_transporte text,              -- solo si es_transporte
   creado_en timestamptz not null default now()
@@ -64,7 +65,7 @@ create table if not exists parada_chofer (
   orden int not null default 0,         -- posición en el recorrido de ese chofer
   estado text not null default 'en_espera' check (estado in ('en_espera', 'entregado', 'descartado')),
   litros_confirmado int,
-  producto_confirmado text check (producto_confirmado in ('MO', 'AO')),
+  producto_confirmado text,
   forma_pago_confirmada text,
   monto_confirmado numeric,
   editado boolean not null default false,

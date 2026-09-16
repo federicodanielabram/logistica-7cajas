@@ -3,6 +3,8 @@ import Boton from '../components/Boton'
 import { OPCIONES_LITROS, formatoPago } from '../lib/formato'
 
 const OPCIONES_PAGO = ['Efectivo', 'Transferencia', 'Ya pagado']
+// Los productos reales que vimos en la planilla van más allá de MO/AO.
+const OPCIONES_PRODUCTO = ['SEDA MO', 'SEDA AO', 'LOT', 'ARECO', 'SEDA OLIVA']
 
 function Fila({ etiqueta, valor, onCambiar }) {
   return (
@@ -71,17 +73,17 @@ export default function EditarEntrega({ bufferInicial, onListo }) {
       )}
 
       {seccion === 'producto' && (
-        <div className="opciones-fila">
-          {['MO', 'AO'].map((v) => (
+        <div className="lista">
+          {OPCIONES_PRODUCTO.map((v) => (
             <button
               key={v}
-              className="opcion-grande"
+              className={`item ${v === buffer.producto ? 'item-marcado' : ''}`}
               onClick={() => {
                 setBuffer((b) => ({ ...b, producto: v }))
                 setSeccion(null)
               }}
             >
-              {v}
+              <span className="item-nombre">{v}</span>
             </button>
           ))}
         </div>

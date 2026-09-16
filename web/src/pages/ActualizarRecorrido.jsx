@@ -18,7 +18,7 @@ export default function ActualizarRecorrido() {
       setResultado(null)
       return
     }
-    setResultado(parsearRecorrido(valor))
+    setResultado(parsearRecorrido(valor, fecha))
   }
 
   async function onConfirmar() {
@@ -50,12 +50,12 @@ export default function ActualizarRecorrido() {
     <div className="pagina">
       <h2>Actualizar recorrido — {fecha}</h2>
       <p className="ayuda">
-        En la pestaña de hoy de la planilla: Ctrl+A para seleccionar todo, Ctrl+C para copiar, y
-        pegá acá abajo.
+        Pegá la hoja semanal completa (Ctrl+A, Ctrl+C en Sheets) — no hace falta filtrar nada a
+        mano, el sistema se queda solo con las filas de la fecha de hoy.
       </p>
       <textarea
         className="pegado"
-        placeholder="Pegá acá el contenido de la pestaña de hoy…"
+        placeholder="Pegá acá el contenido de la hoja semanal…"
         value={texto}
         onChange={onCambiarTexto}
         rows={8}
@@ -87,9 +87,8 @@ export default function ActualizarRecorrido() {
                   <th>Litros</th>
                   <th>Total</th>
                   <th>Pago</th>
-                  <th>Zona</th>
-                  <th>Barrio</th>
                   <th>Dirección</th>
+                  <th>Horario</th>
                   <th>Notas</th>
                 </tr>
               </thead>
@@ -109,9 +108,8 @@ export default function ActualizarRecorrido() {
                       {p.forma_pago}
                       {p.monto_efectivo ? ` ($${p.monto_efectivo.toLocaleString('es-AR')})` : ''}
                     </td>
-                    <td>{p.zona}</td>
-                    <td>{p.barrio}</td>
                     <td>{p.direccion}</td>
+                    <td>{p.horario}</td>
                     <td>{p.notas}</td>
                   </tr>
                 ))}
