@@ -118,27 +118,46 @@ export default function App() {
   }, [])
 
   // Al abrir la app, si había una sesión de hoy guardada, retomamos sin
-  // pedir de nuevo quién sos.
+  // pedir de nuevo quién sos. OJO: siempre chequeamos primero contra la
+  // base si en realidad ya se había arrancado (chofer_dia.iniciado_en) —
+  // sin importar qué pantalla haya quedado guardada en el celular. Si
+  // confiáramos ciegamente en lo guardado localmente, un "Empezar" repetido
+  // (por ejemplo tras una prueba anterior del mismo día) intentaría crear
+  // de nuevo las mismas paradas para el chofer y la base lo rechazaría.
   useEffect(() => {
     const guardada = leerSesionLocal()
     if (!guardada?.chofer) return
-    if (guardada.pantalla === 'seleccionar' || guardada.pantalla === 'ordenar_inicial') {
-      // Todavía no se había apretado "Empezar" — no hay nada en la base
-      // para esto, confiamos en lo que quedó guardado en el celular.
-      setChofer(guardada.chofer)
-      setSeleccionadas(new Set(guardada.seleccionadas ?? []))
-      setOrdenLocal(guardada.ordenLocal ?? [])
-      setPantalla(guardada.pantalla)
-      supabase
-        .from('parada')
+
+    async function retomar() {
+      const { data: dia } = await supabase
+        .from('chofer_dia')
         .select('*')
+        .eq('chofer_id', guardada.chofer.id)
         .eq('fecha', fecha)
-        .order('orden_planilla', { ascending: true })
-        .then(({ data }) => setParadasDelDia(data ?? []))
-    } else {
-      // Ya se había arrancado el recorrido — la base manda, no lo guardado acá.
-      onElegirChofer(guardada.chofer)
+        .maybeSingle()
+
+      if (dia?.iniciado_en && !dia?.cerrado_en) {
+        // Ya se había arrancado de verdad — la base manda, ignoramos lo
+        // que haya quedado guardado localmente (podría estar desactualizado).
+        onElegirChofer(guardada.chofer)
+        return
+      }
+
+      if (guardada.pantalla === 'seleccionar' || guardada.pantalla === 'ordenar_inicial') {
+        setChofer(guardada.chofer)
+        setSeleccionadas(new Set(guardada.seleccionadas ?? []))
+        setOrdenLocal(guardada.ordenLocal ?? [])
+        setPantalla(guardada.pantalla)
+        const { data: paradas } = await supabase
+          .from('parada')
+          .select('*')
+          .eq('fecha', fecha)
+          .order('orden_planilla', { ascending: true })
+        setParadasDelDia(paradas ?? [])
+      }
     }
+
+    retomar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
