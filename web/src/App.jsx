@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import logo from './assets/logo.png'
+import wordmark from './assets/logo-wordmark-dark.png'
 import Login from './pages/Login'
 import ActualizarRecorrido from './pages/ActualizarRecorrido'
 import RecorridoDelDia from './pages/RecorridoDelDia'
@@ -30,8 +31,8 @@ function Layout({ children }) {
     <div className="app">
       <header className="header">
         <span className="logo">
-          <img src={logo} alt="" />
-          <span>7 Cajas</span>
+          <img src={logo} alt="" className="logo-icono" />
+          <img src={wordmark} alt="7 Cajas" className="logo-wordmark" />
         </span>
         <nav>
           <NavLink to="/" end>
@@ -40,6 +41,7 @@ function Layout({ children }) {
           <NavLink to="/recorrido">Recorrido de hoy</NavLink>
           <NavLink to="/panel">Panel por chofer</NavLink>
         </nav>
+        <span className="version">Versión 1.0</span>
         <button className="link" onClick={() => supabase.auth.signOut()}>
           Salir
         </button>

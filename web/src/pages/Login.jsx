@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import logo from '../assets/logo.png'
+import wordmark from '../assets/logo-wordmark-dark.png'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -21,7 +22,7 @@ export default function Login() {
     <div className="pantalla-centrada">
       <form className="tarjeta-login" onSubmit={onSubmit}>
         <img src={logo} alt="" className="logo-img" />
-        <h1>7 Cajas</h1>
+        <img src={wordmark} alt="7 Cajas" className="wordmark-img" />
         <p className="subtitulo">Panel administrativo</p>
         <input
           type="email"
