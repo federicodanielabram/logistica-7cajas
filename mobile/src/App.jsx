@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { hoyISO } from './lib/formato'
 import ActualizacionDisponible from './components/ActualizacionDisponible'
@@ -82,6 +82,29 @@ export default function App() {
   const [ruta, setRuta] = useState([]) // post-arranque, respaldado en `parada_chofer`
   const [historial, setHistorial] = useState([]) // para "Volver atrás"
   const [bufferEdicion, setBufferEdicion] = useState(null)
+
+  // Botón/gesto "atrás" de Android: se registra UNA SOLA VEZ (nunca se
+  // vuelve a registrar) para evitar los quilombos de antes. Usa un ref para
+  // leer siempre la pantalla actual sin necesidad de re-suscribirse.
+  // Empezamos con un solo caso mapeado (ordenar_inicial -> seleccionar); el
+  // resto de las pantallas no hacen nada todavía — se van sumando de a una,
+  // probando cada una antes de seguir.
+  const pantallaRef = useRef(pantalla)
+  useEffect(() => {
+    pantallaRef.current = pantalla
+  })
+
+  useEffect(() => {
+    window.history.pushState(null, '', window.location.href)
+    function alAtras() {
+      window.history.pushState(null, '', window.location.href)
+      if (pantallaRef.current === 'ordenar_inicial') {
+        setPantalla('seleccionar')
+      }
+    }
+    window.addEventListener('popstate', alAtras)
+    return () => window.removeEventListener('popstate', alAtras)
+  }, [])
 
   useEffect(() => {
     supabase
