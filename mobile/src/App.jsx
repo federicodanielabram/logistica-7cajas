@@ -204,22 +204,50 @@ export default function App() {
   }
 
   async function onEmpezar() {
+    // Si mientras elegías/ordenabas el vendedor volvió a actualizar el
+    // recorrido, tus paradas elegidas pueden haber quedado apuntando a filas
+    // que ya no existen (todavía no estabas protegido: eso arranca recién
+    // acá). Chequeamos contra la base antes de arrancar para no fallar en
+    // silencio.
+    const idsElegidos = ordenLocal.map((item) => item.id)
+    const { data: vigentes } = await supabase.from('parada').select('*').in('id', idsElegidos)
+    const paradasVigentesPorId = Object.fromEntries((vigentes ?? []).map((p) => [p.id, p]))
+    const ordenVigente = ordenLocal.filter((item) => paradasVigentesPorId[item.id])
+
+    if (ordenVigente.length === 0) {
+      alert(
+        'El recorrido cambió mientras elegías tus paradas y ya no queda ninguna vigente. Volvé a elegir tus paradas.'
+      )
+      setPantalla('seleccionar')
+      return
+    }
+    if (ordenVigente.length < ordenLocal.length) {
+      alert(
+        `El recorrido cambió: ${ordenLocal.length - ordenVigente.length} de tus paradas elegidas ya no existen y se sacaron solas. Revisá el orden antes de seguir.`
+      )
+      setOrdenLocal(ordenVigente)
+      return
+    }
+
     await supabase
       .from('chofer_dia')
       .upsert({ chofer_id: chofer.id, fecha, iniciado_en: new Date().toISOString() }, { onConflict: 'chofer_id,fecha' })
 
-    const filas = ordenLocal.map((item, index) => ({
+    const filas = ordenVigente.map((item, index) => ({
       parada_id: item.id,
       chofer_id: chofer.id,
       fecha,
       orden: index,
       estado: 'en_espera',
     }))
-    const { data: insertadas } = await supabase.from('parada_chofer').insert(filas).select()
+    const { data: insertadas, error } = await supabase.from('parada_chofer').insert(filas).select()
+    if (error) {
+      alert('No se pudo arrancar el recorrido. Probá de nuevo en un momento.')
+      return
+    }
 
-    const porParadaId = Object.fromEntries(paradasDelDia.map((p) => [p.id, p]))
     const rutaNueva = (insertadas ?? [])
-      .map((pc) => aItemRuta(pc, porParadaId[pc.parada_id]))
+      .map((pc) => aItemRuta(pc, paradasVigentesPorId[pc.parada_id]))
       .sort((a, b) => a.orden - b.orden)
     setRuta(rutaNueva)
     setHistorial([])
