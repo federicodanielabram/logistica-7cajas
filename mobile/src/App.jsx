@@ -84,22 +84,50 @@ export default function App() {
   const [bufferEdicion, setBufferEdicion] = useState(null)
 
   // Botón/gesto "atrás" de Android: se registra UNA SOLA VEZ (nunca se
-  // vuelve a registrar) para evitar los quilombos de antes. Usa un ref para
-  // leer siempre la pantalla actual sin necesidad de re-suscribirse.
-  // Empezamos con un solo caso mapeado (ordenar_inicial -> seleccionar); el
-  // resto de las pantallas no hacen nada todavía — se van sumando de a una,
-  // probando cada una antes de seguir.
+  // vuelve a registrar) para evitar los quilombos de antes. Usa refs para
+  // leer siempre el estado actual sin necesidad de re-suscribirse — clave
+  // para no caer en closures viejas dentro de un efecto que se registra
+  // una sola vez al montar.
   const pantallaRef = useRef(pantalla)
   useEffect(() => {
     pantallaRef.current = pantalla
+  })
+
+  // `onDeshacer` se define más abajo en el componente (function declaration,
+  // así que ya existe para cuando este efecto corre) pero cambia de
+  // identidad en cada render porque cierra sobre `historial`/`ruta`
+  // actuales — lo guardamos en un ref para llamar siempre a la versión
+  // fresca.
+  const onDeshacerRef = useRef(() => {})
+  useEffect(() => {
+    onDeshacerRef.current = onDeshacer
   })
 
   useEffect(() => {
     window.history.pushState(null, '', window.location.href)
     function alAtras() {
       window.history.pushState(null, '', window.location.href)
-      if (pantallaRef.current === 'ordenar_inicial') {
-        setPantalla('seleccionar')
+      switch (pantallaRef.current) {
+        case 'seleccionar':
+          setPantalla('identificar')
+          break
+        case 'ordenar_inicial':
+          setPantalla('seleccionar')
+          break
+        case 'yendo':
+          onDeshacerRef.current()
+          break
+        case 'resumen':
+          setPantalla('yendo')
+          break
+        case 'editar':
+          setPantalla('resumen')
+          break
+        case 'reordenar_ruta':
+          setPantalla('yendo')
+          break
+        default:
+          break // identificar y cerrar_dia: sin mapear, son puntas
       }
     }
     window.addEventListener('popstate', alAtras)
