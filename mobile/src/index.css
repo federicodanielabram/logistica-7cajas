@@ -101,6 +101,7 @@ h1.titulo-marca {
 .item-marcado { background: var(--acento); border-color: var(--acento); color: white; }
 .item-marcado .item-subtitulo { color: rgba(255,255,255,0.85); }
 
+.item-en-ruta { opacity: 0.45; }
 .item-amarillo { background: var(--amarillo); border-color: var(--amarillo-borde); }
 .item-verde { background: var(--verde); border-color: var(--verde-borde); }
 .item-rojo { background: var(--rojo); border-color: var(--rojo-borde); }
@@ -113,12 +114,14 @@ h1.titulo-marca {
 .contador { color: var(--muted); font-size: 13px; text-align: center; margin-bottom: 8px; }
 
 .centro-flex { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-.etiqueta { font-size: 15px; color: var(--muted); }
-.cliente-grande { font-size: 28px; font-weight: 700; text-align: center; margin-top: 4px; }
-.direccion { font-size: 16px; margin-top: 16px; text-align: center; }
-.notas { font-size: 14px; color: #92400e; margin-top: 12px; text-align: center; }
+.etiqueta { font-size: 19px; color: var(--muted); }
+.cliente-grande { font-size: 40px; font-weight: 700; text-align: center; margin-top: 4px; }
+.direccion { font-size: 22px; margin-top: 16px; text-align: center; }
+.notas { font-size: 19px; color: #92400e; margin-top: 12px; text-align: center; }
 
-.resumen-texto { font-size: 20px; font-weight: 600; text-align: center; line-height: 1.4; }
+/* Se lee manejando: letra grande en la pantalla de "Yendo a" y de
+   confirmar entrega. */
+.resumen-texto { font-size: 28px; font-weight: 600; text-align: center; line-height: 1.4; }
 
 .fila-editar {
   background: var(--panel);

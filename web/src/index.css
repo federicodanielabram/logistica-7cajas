@@ -206,6 +206,10 @@ tr.fila-transporte:hover td { background: #ffe6c2; }
 .item-verde { background: var(--verde); border-color: var(--verde-borde); }
 .item-rojo { background: var(--rojo); border-color: var(--rojo-borde); }
 
+.filtros-historial { display: flex; gap: 20px; margin-bottom: 18px; }
+.filtros-historial label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85em; color: var(--muted); font-weight: 600; }
+.filtros-historial input, .filtros-historial select { min-width: 160px; }
+
 .item-linea-principal { display: flex; justify-content: space-between; align-items: center; }
 .item-detalle { font-size: 0.85em; margin-top: 2px; }
 .tag-editado {

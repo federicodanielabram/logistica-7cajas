@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import ActualizarRecorrido from './pages/ActualizarRecorrido'
 import RecorridoDelDia from './pages/RecorridoDelDia'
 import Panel from './pages/Panel'
+import Historial from './pages/Historial'
 
 function useSesion() {
   const [sesion, setSesion] = useState(undefined) // undefined = cargando, null = sin sesión
@@ -40,6 +41,7 @@ function Layout({ children }) {
           </NavLink>
           <NavLink to="/recorrido">Recorrido de hoy</NavLink>
           <NavLink to="/panel">Panel por chofer</NavLink>
+          <NavLink to="/historial">Historial</NavLink>
         </nav>
         <span className="version">Versión 1.0</span>
         <button className="link" onClick={() => supabase.auth.signOut()}>
@@ -64,6 +66,7 @@ export default function App() {
           <Route path="/" element={<ActualizarRecorrido />} />
           <Route path="/recorrido" element={<RecorridoDelDia />} />
           <Route path="/panel" element={<Panel />} />
+          <Route path="/historial" element={<Historial />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

@@ -36,9 +36,20 @@ function ColumnaChofer({ chofer, fecha }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chofer.id, fecha])
 
+  const ultimaAccion = items
+    .map((item) => item.entregado_en)
+    .filter(Boolean)
+    .sort()
+    .at(-1)
+
   return (
     <div className="columna-chofer">
       <h3>{chofer.nombre}</h3>
+      {ultimaAccion && (
+        <p className="ayuda">
+          Última acción: {new Date(ultimaAccion).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+        </p>
+      )}
       {items.length === 0 && <p className="ayuda">Todavía no eligió sus paradas.</p>}
       <ul className="checklist">
         {items.map((item) => {

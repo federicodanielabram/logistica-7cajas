@@ -9,6 +9,7 @@ import Yendo from './screens/Yendo'
 import ResumenEntrega from './screens/ResumenEntrega'
 import EditarEntrega from './screens/EditarEntrega'
 import CerrarDia from './screens/CerrarDia'
+import AgregarParadas from './screens/AgregarParadas'
 
 const fecha = hoyISO()
 const CLAVE_SESION = '7cajas_sesion_chofer'
@@ -93,14 +94,14 @@ export default function App() {
     pantallaRef.current = pantalla
   })
 
-  // `onDeshacer` se define más abajo en el componente (function declaration,
-  // así que ya existe para cuando este efecto corre) pero cambia de
-  // identidad en cada render porque cierra sobre `historial`/`ruta`
+  // `onVolverAUltimo` se define más abajo en el componente (function
+  // declaration, así que ya existe para cuando este efecto corre) pero
+  // cambia de identidad en cada render porque cierra sobre `historial`/`ruta`
   // actuales — lo guardamos en un ref para llamar siempre a la versión
   // fresca.
-  const onDeshacerRef = useRef(() => {})
+  const onVolverAUltimoRef = useRef(() => {})
   useEffect(() => {
-    onDeshacerRef.current = onDeshacer
+    onVolverAUltimoRef.current = onVolverAUltimo
   })
 
   useEffect(() => {
@@ -113,9 +114,10 @@ export default function App() {
           break
         case 'ordenar_inicial':
           setPantalla('seleccionar')
+          cargarParadasDelDia()
           break
         case 'yendo':
-          onDeshacerRef.current()
+          setPantalla('reordenar_ruta')
           break
         case 'resumen':
           setPantalla('yendo')
@@ -124,10 +126,17 @@ export default function App() {
           setPantalla('resumen')
           break
         case 'reordenar_ruta':
-          setPantalla('yendo')
+          setPantalla('agregar_paradas')
+          cargarParadasDelDia()
+          break
+        case 'agregar_paradas':
+          setPantalla('identificar')
+          break
+        case 'cerrar_dia':
+          onVolverAUltimoRef.current()
           break
         default:
-          break // identificar y cerrar_dia: sin mapear, son puntas
+          break // identificar: sin mapear, es punta
       }
     }
     window.addEventListener('popstate', alAtras)
@@ -198,6 +207,18 @@ export default function App() {
     }
   }, [chofer, seleccionadas, ordenLocal, pantalla])
 
+  // Se usa al elegir chofer y también cada vez que se vuelve a "Seleccionar
+  // paradas" o "Agregar paradas" en pleno reparto, para traer pedidos nuevos
+  // que el vendedor haya cargado mientras tanto.
+  async function cargarParadasDelDia() {
+    const { data } = await supabase
+      .from('parada')
+      .select('*')
+      .eq('fecha', fecha)
+      .order('orden_planilla', { ascending: true })
+    setParadasDelDia(data ?? [])
+  }
+
   async function onElegirChofer(choferElegido) {
     setChofer(choferElegido)
 
@@ -223,12 +244,7 @@ export default function App() {
       return
     }
 
-    const { data: paradas } = await supabase
-      .from('parada')
-      .select('*')
-      .eq('fecha', fecha)
-      .order('orden_planilla', { ascending: true })
-    setParadasDelDia(paradas ?? [])
+    await cargarParadasDelDia()
     setSeleccionadas(new Set())
     setPantalla('seleccionar')
   }
@@ -243,8 +259,13 @@ export default function App() {
   }
 
   function onSiguienteSeleccion() {
-    const items = paradasDelDia
-      .filter((p) => seleccionadas.has(p.id))
+    const paradasPorId = Object.fromEntries(paradasDelDia.map((p) => [p.id, p]))
+    // El orden acá es el orden en que se fueron tildando (orden de inserción
+    // del Set), no el de la planilla — así el armado del recorrido arranca
+    // ya ordenado como el chofer los fue eligiendo.
+    const items = [...seleccionadas]
+      .map((id) => paradasPorId[id])
+      .filter(Boolean)
       .map((p) => ({
         id: p.id,
         cliente: p.cliente,
@@ -353,24 +374,37 @@ export default function App() {
 
   async function onSiguienteCliente() {
     const item = targetActual
-    setHistorial((h) => [...h, { itemId: item.id }])
+    setHistorial((h) => [...h, { itemId: item.id, tipo: 'descartado' }])
     await actualizarItemRuta(item.id, { estado: 'descartado', entregado_en: new Date().toISOString() })
   }
 
-  async function onDeshacer() {
+  // Botón "↩ Volver atrás" de Yendo, y atrás de Android desde "Cerrar el
+  // día": ambos apuntan acá. Si el último punto fue un "no entregó", no hay
+  // nada que confirmar — se revierte a en_espera para volver a intentarlo.
+  // Si fue una entrega, se abre su confirmación (Resumen) para poder
+  // revisarla o editarla, sin tocar la base hasta que se confirme de nuevo.
+  async function onVolverAUltimo() {
     const ultimo = historial[historial.length - 1]
     if (!ultimo) return
-    setHistorial((h) => h.slice(0, -1))
-    await actualizarItemRuta(ultimo.itemId, {
-      estado: 'en_espera',
-      litros_confirmado: null,
-      producto_confirmado: null,
-      forma_pago_confirmada: null,
-      monto_confirmado: null,
-      editado: false,
-      entregado_en: null,
+
+    if (ultimo.tipo === 'descartado') {
+      setHistorial((h) => h.slice(0, -1))
+      await actualizarItemRuta(ultimo.itemId, { estado: 'en_espera', entregado_en: null })
+      setPantalla('yendo')
+      return
+    }
+
+    const item = ruta.find((i) => i.id === ultimo.itemId)
+    if (!item) return
+    setBufferEdicion({
+      itemId: item.id,
+      cliente: item.cliente,
+      litros: item.litros_confirmado,
+      producto: item.producto_confirmado,
+      formaPago: item.forma_pago_confirmada,
+      monto: item.monto_confirmado,
     })
-    setPantalla('yendo')
+    setPantalla('resumen')
   }
 
   async function onConfirmarResumen() {
@@ -381,7 +415,13 @@ export default function App() {
       bufferEdicion.formaPago !== original.forma_pago ||
       bufferEdicion.monto !== original.monto_efectivo
 
-    setHistorial((h) => [...h, { itemId: bufferEdicion.itemId }])
+    setHistorial((h) => {
+      const ultimo = h[h.length - 1]
+      // Si se está reconfirmando el mismo punto (se volvió con "↩ Volver
+      // atrás" y se confirmó de nuevo), no duplicar la entrada.
+      if (ultimo && ultimo.itemId === bufferEdicion.itemId) return h
+      return [...h, { itemId: bufferEdicion.itemId, tipo: 'entregado' }]
+    })
     await actualizarItemRuta(bufferEdicion.itemId, {
       estado: 'entregado',
       litros_confirmado: bufferEdicion.litros,
@@ -393,6 +433,24 @@ export default function App() {
     })
     setBufferEdicion(null)
     setPantalla('yendo')
+  }
+
+  // Agregar en pleno reparto una parada del día que no habías elegido al
+  // arrancar (se llega acá yendo hacia atrás desde "Reordenar lista").
+  async function onAgregarParada(paradaId) {
+    const parada = paradasDelDia.find((p) => p.id === paradaId)
+    if (!parada) return
+    const maxOrden = ruta.length > 0 ? Math.max(...ruta.map((i) => i.orden)) + 1 : 0
+    const { data, error } = await supabase
+      .from('parada_chofer')
+      .insert({ parada_id: paradaId, chofer_id: chofer.id, fecha, orden: maxOrden, estado: 'en_espera' })
+      .select()
+      .single()
+    if (error) {
+      alert('No se pudo agregar la parada. Probá de nuevo.')
+      return
+    }
+    setRuta((prev) => [...prev, aItemRuta(data, parada)])
   }
 
   async function onQuitarDeRuta(itemId) {
@@ -459,7 +517,7 @@ export default function App() {
         puedeDeshacer={historial.length > 0}
         onEntregado={onEntregado}
         onSiguienteCliente={onSiguienteCliente}
-        onDeshacer={onDeshacer}
+        onDeshacer={onVolverAUltimo}
         onReordenar={() => setPantalla('reordenar_ruta')}
       />
     )
@@ -489,6 +547,17 @@ export default function App() {
         onQuitar={onQuitarDeRuta}
         onConfirmar={onConfirmarReordenamiento}
         tituloBoton="Siguiente"
+      />
+    )
+  }
+
+  if (pantalla === 'agregar_paradas') {
+    return (
+      <AgregarParadas
+        paradas={paradasDelDia}
+        idsEnRuta={new Set(ruta.map((i) => i.parada_id))}
+        onAgregar={onAgregarParada}
+        onListo={() => setPantalla('reordenar_ruta')}
       />
     )
   }
