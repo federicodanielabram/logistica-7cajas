@@ -75,7 +75,7 @@ export default function Historial() {
           <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
         </label>
         <label>
-          Camión
+          Camioneta
           <select value={choferId} onChange={(e) => setChoferId(e.target.value)}>
             <option value="todos">Todos</option>
             {choferes.map((c) => (

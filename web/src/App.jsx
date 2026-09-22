@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, NavLink, Link } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import logo from './assets/logo.png'
 import wordmark from './assets/logo-wordmark-dark.png'
 import Login from './pages/Login'
+import Inicio from './pages/Inicio'
 import ActualizarRecorrido from './pages/ActualizarRecorrido'
 import RecorridoDelDia from './pages/RecorridoDelDia'
 import Panel from './pages/Panel'
@@ -31,11 +32,17 @@ function Layout({ children }) {
   return (
     <div className="app">
       <header className="header">
-        <span className="logo">
+        <Link to="/inicio" className="logo">
           <img src={logo} alt="" className="logo-icono" />
-          <img src={wordmark} alt="7 Cajas" className="logo-wordmark" />
-        </span>
+          <span
+            className="logo-wordmark"
+            role="img"
+            aria-label="7 Cajas"
+            style={{ WebkitMaskImage: `url(${wordmark})`, maskImage: `url(${wordmark})` }}
+          />
+        </Link>
         <nav>
+          <NavLink to="/inicio">Inicio</NavLink>
           <NavLink to="/" end>
             Actualizar recorrido
           </NavLink>
@@ -43,7 +50,7 @@ function Layout({ children }) {
           <NavLink to="/panel">Panel por chofer</NavLink>
           <NavLink to="/historial">Historial</NavLink>
         </nav>
-        <span className="version">Versión 1.0</span>
+        <span className="version">Versión 1.1</span>
         <button className="link" onClick={() => supabase.auth.signOut()}>
           Salir
         </button>
@@ -63,6 +70,7 @@ export default function App() {
     <BrowserRouter>
       <Layout>
         <Routes>
+          <Route path="/inicio" element={<Inicio />} />
           <Route path="/" element={<ActualizarRecorrido />} />
           <Route path="/recorrido" element={<RecorridoDelDia />} />
           <Route path="/panel" element={<Panel />} />
