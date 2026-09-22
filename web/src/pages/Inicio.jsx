@@ -6,7 +6,7 @@ import foto3 from '../assets/inicio/distribucion3.jpg'
 import foto4 from '../assets/inicio/distribucion4.jpg'
 
 const FOTOS = [foto1, foto2, foto3, foto4]
-const INTERVALO_MS = 5000
+const INTERVALO_MS = 2500
 
 export default function Inicio() {
   const [activa, setActiva] = useState(0)
