@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import Boton from '../components/Boton'
 
+const COLOR_ESTADO_PREVIO = { entregado: 'verde', descartado: 'rojo' }
+
 export default function SeleccionarParadas({ paradas, seleccionadas, onToggle, onSiguiente }) {
   const [busqueda, setBusqueda] = useState('')
 
@@ -22,10 +24,13 @@ export default function SeleccionarParadas({ paradas, seleccionadas, onToggle, o
       <div className="lista">
         {filtradas.map((item) => {
           const marcado = seleccionadas.has(item.id)
+          const colorPrevio = COLOR_ESTADO_PREVIO[item.estado_previo]
+          const yaResuelta = Boolean(colorPrevio)
           return (
             <button
               key={item.id}
-              className={`item ${marcado ? 'item-marcado' : ''}`}
+              className={`item ${marcado ? 'item-marcado' : ''} ${colorPrevio ? `item-${colorPrevio}` : ''}`}
+              disabled={yaResuelta}
               onClick={() => onToggle(item.id)}
             >
               <div>
@@ -34,6 +39,9 @@ export default function SeleccionarParadas({ paradas, seleccionadas, onToggle, o
                   <div className="item-subtitulo">TRANS. {item.empresa_transporte}</div>
                 )}
               </div>
+              {yaResuelta && (
+                <span className="item-subtitulo">{item.estado_previo === 'entregado' ? 'Ya entregado' : 'Ya descartado'}</span>
+              )}
             </button>
           )
         })}

@@ -173,6 +173,16 @@ input:focus, textarea:focus {
   text-align: center;
 }
 .inicio-imagen { height: 182px; filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.35)); }
+.inicio-footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(6px);
+  border-top: 1px solid var(--borde);
+}
 .inicio-titulo {
   font-family: 'Orbitron', sans-serif;
   font-weight: 900;
@@ -277,11 +287,16 @@ tr.fila-transporte:hover td { background: #ffe6c2; }
 .checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 
 .checklist li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   border-radius: 10px;
   padding: 10px 14px;
   border: 1px solid var(--borde);
   box-shadow: var(--sombra-chica);
 }
+.item-contenido { flex: 1; min-width: 0; }
 .item-amarillo { background: var(--amarillo); border-color: var(--amarillo-borde); }
 .item-verde { background: var(--verde); border-color: var(--verde-borde); }
 .item-rojo { background: var(--rojo); border-color: var(--rojo-borde); }
@@ -290,8 +305,33 @@ tr.fila-transporte:hover td { background: #ffe6c2; }
 .filtros-historial label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85em; color: var(--muted); font-weight: 600; }
 .filtros-historial input, .filtros-historial select { min-width: 160px; }
 
-.item-linea-principal { display: flex; justify-content: space-between; align-items: center; }
+.item-linea-principal { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .item-detalle { font-size: 0.85em; margin-top: 2px; }
+
+.boton-copiar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--amarillo-borde);
+  background: var(--amarillo);
+  color: var(--texto);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.boton-copiar svg { width: 15px; height: 15px; display: block; }
+.boton-copiar:hover { border-color: var(--acento-oscuro); }
+.boton-copiar.copiado {
+  background: var(--verde-borde);
+  border-color: var(--verde-borde);
+  color: #fff;
+}
+.boton-copiar.copiado:hover { border-color: var(--verde-borde); color: #fff; }
+
 .tag-editado {
   font-size: 0.7em;
   font-weight: 700;

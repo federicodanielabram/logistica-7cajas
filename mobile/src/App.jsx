@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { hoyISO } from './lib/formato'
+import logo from './assets/logo.png'
 import ActualizacionDisponible from './components/ActualizacionDisponible'
 import Identificar from './screens/Identificar'
 import SeleccionarParadas from './screens/SeleccionarParadas'
@@ -58,6 +59,7 @@ function aItemRuta(pc, parada) {
     notas: parada.notas,
     litros: parada.litros,
     producto: parada.producto,
+    multiproducto: parada.multiproducto,
     forma_pago: parada.forma_pago,
     monto_efectivo: parada.monto_efectivo,
     orden: pc.orden,
@@ -66,6 +68,7 @@ function aItemRuta(pc, parada) {
     producto_confirmado: pc.producto_confirmado,
     forma_pago_confirmada: pc.forma_pago_confirmada,
     monto_confirmado: pc.monto_confirmado,
+    pago_dividido: pc.pago_dividido,
     editado: pc.editado,
   }
 }
@@ -185,12 +188,7 @@ export default function App() {
         setSeleccionadas(new Set(guardada.seleccionadas ?? []))
         setOrdenLocal(guardada.ordenLocal ?? [])
         setPantalla(guardada.pantalla)
-        const { data: paradas } = await supabase
-          .from('parada')
-          .select('*')
-          .eq('fecha', fecha)
-          .order('orden_planilla', { ascending: true })
-        setParadasDelDia(paradas ?? [])
+        await cargarParadasDelDia(guardada.chofer.id)
       }
     }
 
@@ -209,14 +207,29 @@ export default function App() {
 
   // Se usa al elegir chofer y también cada vez que se vuelve a "Seleccionar
   // paradas" o "Agregar paradas" en pleno reparto, para traer pedidos nuevos
-  // que el vendedor haya cargado mientras tanto.
-  async function cargarParadasDelDia() {
+  // que el vendedor haya cargado mientras tanto. También trae, para el
+  // chofer actual, el estado de cualquier parada que ya haya resuelto hoy en
+  // una tanda anterior (por ejemplo si cerró el día y volvió a elegir su
+  // nombre para sumar más entregas) — así "Elegí tus paradas" puede seguir
+  // mostrando en verde/rojo lo que ya hizo en vez de mostrarlo como si nada.
+  async function cargarParadasDelDia(choferId = chofer?.id) {
     const { data } = await supabase
       .from('parada')
       .select('*')
       .eq('fecha', fecha)
       .order('orden_planilla', { ascending: true })
-    setParadasDelDia(data ?? [])
+
+    let estadoPrevioPorParada = {}
+    if (choferId) {
+      const { data: previas } = await supabase
+        .from('parada_chofer')
+        .select('parada_id, estado')
+        .eq('chofer_id', choferId)
+        .eq('fecha', fecha)
+      estadoPrevioPorParada = Object.fromEntries((previas ?? []).map((p) => [p.parada_id, p.estado]))
+    }
+
+    setParadasDelDia((data ?? []).map((p) => ({ ...p, estado_previo: estadoPrevioPorParada[p.id] ?? null })))
   }
 
   async function onElegirChofer(choferElegido) {
@@ -244,7 +257,7 @@ export default function App() {
       return
     }
 
-    await cargarParadasDelDia()
+    await cargarParadasDelDia(choferElegido.id)
     setSeleccionadas(new Set())
     setPantalla('seleccionar')
   }
@@ -366,8 +379,10 @@ export default function App() {
       cliente: targetActual.cliente,
       litros: targetActual.litros,
       producto: targetActual.producto,
+      multiproducto: targetActual.multiproducto,
       formaPago: targetActual.forma_pago,
       monto: targetActual.monto_efectivo,
+      pagoDividido: false, // recién sale de la planilla, todavía no se dividió nada
     })
     setPantalla('resumen')
   }
@@ -401,8 +416,10 @@ export default function App() {
       cliente: item.cliente,
       litros: item.litros_confirmado,
       producto: item.producto_confirmado,
+      multiproducto: item.multiproducto,
       formaPago: item.forma_pago_confirmada,
       monto: item.monto_confirmado,
+      pagoDividido: item.pago_dividido,
     })
     setPantalla('resumen')
   }
@@ -428,6 +445,7 @@ export default function App() {
       producto_confirmado: bufferEdicion.producto,
       forma_pago_confirmada: bufferEdicion.formaPago,
       monto_confirmado: bufferEdicion.monto,
+      pago_dividido: bufferEdicion.pagoDividido,
       editado,
       entregado_en: new Date().toISOString(),
     })
@@ -571,6 +589,13 @@ export default function App() {
 
   return (
     <>
+      <header className="header-chofer">
+        <div className="header-chofer-marca">
+          <img src={logo} alt="" className="header-chofer-logo" />
+          <span className="header-chofer-texto">Logística de repartos</span>
+        </div>
+        <span className="header-chofer-version">v1.2</span>
+      </header>
       {pantallaActual()}
       <ActualizacionDisponible />
     </>

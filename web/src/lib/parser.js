@@ -94,9 +94,17 @@ export function parsearRecorrido(textoPegado, fechaObjetivo) {
 
     const formaPago = fila.forma_pago
     const total = parseNumeroAR(fila.total)
-    const esEfectivo = /efectivo/i.test(formaPago)
+    // La planilla a veces ya avisa que el pago se va a dividir entre efectivo
+    // y transferencia (ej. "Transferencia/Efectivo"), pero sin los montos —
+    // eso lo carga el chofer recién al entregar. Si tratáramos esto como
+    // "esEfectivo" le asignaríamos de una todo el total como si fuera cash,
+    // que está mal: todavía no sabemos cuánto es de cada método.
+    const pagoPendienteDeDividir = /efectivo/i.test(formaPago) && /transferencia/i.test(formaPago)
+    const esEfectivo = !pagoPendienteDeDividir && /efectivo/i.test(formaPago)
     const empresaTransporte = fila.empresa_transporte
-    const esTransporte = Boolean(empresaTransporte)
+    // La planilla no deja la columna vacía en las entregas propias: pone "PROPIO" a mano.
+    // Eso no cuenta como transporte tercerizado, no hay que mostrar ninguna etiqueta.
+    const esTransporte = Boolean(empresaTransporte) && !/^propio$/i.test(empresaTransporte)
 
     paradas.push({
       orden_planilla: paradas.length,
@@ -112,8 +120,42 @@ export function parsearRecorrido(textoPegado, fechaObjetivo) {
       direccion: fila.direccion || null,
       es_transporte: esTransporte,
       empresa_transporte: esTransporte ? empresaTransporte : null,
+      multiproducto: false,
     })
   })
 
-  return { paradas, errores }
+  return { paradas: agruparPorCliente(paradas), errores }
+}
+
+// Un mismo cliente puede pedir más de un producto: el vendedor lo carga como
+// filas separadas en Sheets (mismo cliente, mismo día), pero es una sola
+// parada física — el chofer la visita una vez. Acá se combinan en una sola
+// fila, con el texto de "producto" ya armado con todos los productos juntos
+// ("40lts SEDA AO + 20lts SEDA MO"). El resto de los datos (dirección,
+// horario, forma de pago, transporte) sale de la primera fila del grupo —
+// asumimos que son iguales entre sí, porque es el mismo cliente.
+function agruparPorCliente(paradas) {
+  const grupos = new Map()
+  for (const p of paradas) {
+    if (!grupos.has(p.cliente)) grupos.set(p.cliente, [])
+    grupos.get(p.cliente).push(p)
+  }
+
+  const combinadas = [...grupos.values()].map((filas) => {
+    if (filas.length === 1) return filas[0]
+    const [primera] = filas
+    return {
+      ...primera,
+      producto: filas.map((f) => `${f.litros ?? '—'}lts ${f.producto}`).join(' + '),
+      litros: filas.reduce((acc, f) => acc + (f.litros || 0), 0),
+      total: filas.reduce((acc, f) => acc + (f.total || 0), 0),
+      monto_efectivo: filas.some((f) => f.monto_efectivo != null)
+        ? filas.reduce((acc, f) => acc + (f.monto_efectivo || 0), 0)
+        : null,
+      precio_unitario: null, // ya no hay un único precio por unidad para todo el grupo
+      multiproducto: true,
+    }
+  })
+
+  return combinadas.sort((a, b) => a.orden_planilla - b.orden_planilla)
 }

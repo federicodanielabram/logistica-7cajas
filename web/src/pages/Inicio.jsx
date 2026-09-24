@@ -34,6 +34,7 @@ export default function Inicio() {
         <img src={logo} alt="" className="inicio-imagen" />
         <h1 className="inicio-titulo">Logística de Repartos</h1>
       </div>
+      <footer className="inicio-footer" />
     </div>
   )
 }

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { hoyISO } from '../lib/recorrido'
-import { formatoPago } from '../lib/formato'
+import { formatoPago, resumenParaCopiar, textoCantidadProducto } from '../lib/formato'
+import { useCopiados } from '../lib/useCopiados'
+import BotonCopiar from '../components/BotonCopiar'
 
 const ESTADO_COLOR = { en_espera: 'amarillo', entregado: 'verde', descartado: 'rojo' }
 // Si por error quedó más de una asignación para la misma parada (los dos
@@ -11,6 +13,7 @@ const PRIORIDAD_ESTADO = { entregado: 2, descartado: 1, en_espera: 0 }
 export default function RecorridoDelDia() {
   const [items, setItems] = useState([])
   const fecha = hoyISO()
+  const [copiados, marcarCopiado] = useCopiados(`copiados_${fecha}`)
 
   async function cargar() {
     const { data: paradas } = await supabase
@@ -42,6 +45,8 @@ export default function RecorridoDelDia() {
           producto: asig?.producto_confirmado ?? p.producto,
           formaPago: asig?.forma_pago_confirmada ?? p.forma_pago,
           monto: asig?.monto_confirmado ?? p.monto_efectivo,
+          multiproducto: p.multiproducto,
+          pagoDividido: asig?.pago_dividido ?? false,
         }
       })
     )
@@ -69,13 +74,22 @@ export default function RecorridoDelDia() {
       <ul className="checklist">
         {items.map((item) => (
           <li key={item.id} className={`item-${ESTADO_COLOR[item.estado]}`}>
-            <div className="item-linea-principal">
-              <strong>{item.cliente}</strong>
+            <div className="item-contenido">
+              <div className="item-linea-principal">
+                <strong>{item.cliente}</strong>
+              </div>
+              {item.es_transporte && <div className="subtitulo-chico">TRANS. {item.empresa_transporte}</div>}
+              <div className="item-detalle">
+                {textoCantidadProducto(item)} · {formatoPago(item.formaPago, item.monto, item.pagoDividido)}
+              </div>
             </div>
-            {item.es_transporte && <div className="subtitulo-chico">TRANS. {item.empresa_transporte}</div>}
-            <div className="item-detalle">
-              {item.litros ?? '—'}lts · {item.producto} · {formatoPago(item.formaPago, item.monto)}
-            </div>
+            {item.estado === 'entregado' && (
+              <BotonCopiar
+                texto={resumenParaCopiar(item)}
+                copiado={copiados.has(item.id)}
+                onCopiado={() => marcarCopiado(item.id)}
+              />
+            )}
           </li>
         ))}
       </ul>

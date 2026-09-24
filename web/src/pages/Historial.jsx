@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { hoyISO } from '../lib/recorrido'
-import { formatoPago } from '../lib/formato'
+import { formatoPago, textoCantidadProducto } from '../lib/formato'
 
 const ESTADO_COLOR = { en_espera: 'amarillo', entregado: 'verde', descartado: 'rojo' }
 
@@ -43,6 +43,8 @@ export default function Historial() {
             producto: a.producto_confirmado ?? p.producto,
             formaPago: a.forma_pago_confirmada ?? p.forma_pago,
             monto: a.monto_confirmado ?? p.monto_efectivo,
+            multiproducto: p.multiproducto,
+            pagoDividido: a.pago_dividido,
             entregadoEn: a.entregado_en,
           }
         })
@@ -104,7 +106,7 @@ export default function Historial() {
             </div>
             {item.es_transporte && <div className="subtitulo-chico">TRANS. {item.empresa_transporte}</div>}
             <div className="item-detalle">
-              {item.litros ?? '—'}lts · {item.producto} · {formatoPago(item.formaPago, item.monto)}
+              {textoCantidadProducto(item)} · {formatoPago(item.formaPago, item.monto, item.pagoDividido)}
             </div>
           </li>
         ))}

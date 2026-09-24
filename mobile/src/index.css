@@ -37,12 +37,46 @@ button {
 
 .pantalla {
   flex: 1;
+  min-height: 0; /* deja que .lista adentro pueda scrollear ella sola en vez de estirar toda la página */
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
   padding: 16px;
   padding-bottom: max(16px, env(safe-area-inset-bottom));
-  padding-top: max(16px, env(safe-area-inset-top));
+}
+
+/* Barra fija arriba de toda la app (antes .pantalla ocupaba toda la altura y
+   manejaba ella misma el safe-area de arriba — ahora lo maneja este header,
+   que es el elemento que de verdad toca el borde superior). */
+.header-chofer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  background: var(--panel);
+  border-bottom: 1px solid var(--borde);
+  flex-shrink: 0;
+}
+.header-chofer-marca { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.header-chofer-logo { height: 26px; width: auto; flex-shrink: 0; }
+.header-chofer-texto {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--texto);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.header-chofer-version {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  flex-shrink: 0;
 }
 
 .pantalla-centrada { justify-content: center; align-items: center; text-align: center; }
@@ -65,6 +99,18 @@ button {
 .btn-chico { padding: 10px; font-size: 14px; }
 .btn-emergencia { background: transparent; color: var(--muted); border: 1px solid var(--borde); }
 
+.identificar-marca { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 48px; }
+.identificar-logo { height: 158px; width: auto; }
+.identificar-titulo {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0;
+}
+
 h1.titulo-marca {
   font-family: 'Archivo Black', sans-serif;
   color: var(--acento-oscuro);
@@ -81,7 +127,7 @@ h1.titulo-marca {
   margin-bottom: 12px;
 }
 
-.lista { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; }
+.lista { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; }
 
 .item {
   background: var(--panel);
@@ -115,13 +161,21 @@ h1.titulo-marca {
 
 .centro-flex { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
 .etiqueta { font-size: 19px; color: var(--muted); }
-.cliente-grande { font-size: 40px; font-weight: 700; text-align: center; margin-top: 4px; }
-.direccion { font-size: 22px; margin-top: 16px; text-align: center; }
-.notas { font-size: 19px; color: #92400e; margin-top: 12px; text-align: center; }
+.cliente-grande { font-size: 52px; font-weight: 700; text-align: center; margin-top: 4px; }
+.direccion { font-size: 25px; margin-top: 16px; text-align: center; }
+.notas { font-size: 22px; color: #92400e; margin-top: 12px; text-align: center; }
+
+/* Pantalla "Yendo a": todo lo que no es botón ni el nombre del punto (que ya
+   se agranda arriba) se agranda un poco también. Escapado acá y no en las
+   clases de base porque .etiqueta/.item-subtitulo se comparten con listas y
+   con el resumen de entrega, donde no queremos este tamaño. */
+.pantalla-yendo .etiqueta { font-size: 27px; }
+.pantalla-yendo .item-subtitulo { font-size: 19px; }
 
 /* Se lee manejando: letra grande en la pantalla de "Yendo a" y de
    confirmar entrega. */
-.resumen-texto { font-size: 28px; font-weight: 600; text-align: center; line-height: 1.4; }
+.resumen-texto { font-size: 36px; font-weight: 600; text-align: center; line-height: 1.4; }
+.pantalla-resumen .etiqueta { font-size: 27px; }
 
 .fila-editar {
   background: var(--panel);

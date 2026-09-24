@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { hoyISO } from '../lib/recorrido'
-import { formatoPago } from '../lib/formato'
+import { formatoPago, resumenParaCopiar, textoCantidadProducto } from '../lib/formato'
+import { useCopiados } from '../lib/useCopiados'
+import BotonCopiar from '../components/BotonCopiar'
 
 const ESTADO_COLOR = {
   en_espera: 'amarillo',
@@ -11,6 +13,7 @@ const ESTADO_COLOR = {
 
 function ColumnaChofer({ chofer, fecha }) {
   const [items, setItems] = useState([])
+  const [copiados, marcarCopiado] = useCopiados(`copiados_${fecha}`)
 
   async function cargar() {
     const { data, error } = await supabase
@@ -60,14 +63,32 @@ function ColumnaChofer({ chofer, fecha }) {
           const monto = item.monto_confirmado ?? p.monto_efectivo
           return (
             <li key={item.id} className={`item-${ESTADO_COLOR[item.estado]}`}>
-              <div className="item-linea-principal">
-                <strong>{p.cliente}</strong>
-                {item.editado && <span className="tag-editado">editado</span>}
+              <div className="item-contenido">
+                <div className="item-linea-principal">
+                  <strong>{p.cliente}</strong>
+                  {item.editado && <span className="tag-editado">editado</span>}
+                </div>
+                {p.es_transporte && <div className="subtitulo-chico">TRANS. {p.empresa_transporte}</div>}
+                <div className="item-detalle">
+                  {textoCantidadProducto({ litros, producto, multiproducto: p.multiproducto })} ·{' '}
+                  {formatoPago(formaPago, monto, item.pago_dividido)}
+                </div>
               </div>
-              {p.es_transporte && <div className="subtitulo-chico">TRANS. {p.empresa_transporte}</div>}
-              <div className="item-detalle">
-                {litros ?? '—'}lts · {producto} · {formatoPago(formaPago, monto)}
-              </div>
+              {item.estado === 'entregado' && (
+                <BotonCopiar
+                  texto={resumenParaCopiar({
+                    litros,
+                    producto,
+                    cliente: p.cliente,
+                    formaPago,
+                    monto,
+                    multiproducto: p.multiproducto,
+                    pagoDividido: item.pago_dividido,
+                  })}
+                  copiado={copiados.has(p.id)}
+                  onCopiado={() => marcarCopiado(p.id)}
+                />
+              )}
             </li>
           )
         })}

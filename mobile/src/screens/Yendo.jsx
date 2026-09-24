@@ -2,7 +2,7 @@ import Boton from '../components/Boton'
 
 export default function Yendo({ parada, puedeDeshacer, onEntregado, onSiguienteCliente, onDeshacer, onReordenar }) {
   return (
-    <div className="pantalla">
+    <div className="pantalla pantalla-yendo">
       <div className="centro-flex">
         <div className="etiqueta">Yendo a</div>
         <div className="cliente-grande">{parada.cliente}</div>

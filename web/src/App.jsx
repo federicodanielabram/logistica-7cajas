@@ -50,7 +50,7 @@ function Layout({ children }) {
           <NavLink to="/panel">Panel por chofer</NavLink>
           <NavLink to="/historial">Historial</NavLink>
         </nav>
-        <span className="version">Versión 1.1</span>
+        <span className="version">Versión 1.2</span>
         <button className="link" onClick={() => supabase.auth.signOut()}>
           Salir
         </button>
