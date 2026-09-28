@@ -19,6 +19,10 @@ export function formatoPago(formaPago, monto, pagoDividido) {
   if (!formaPago) return '—'
   if (pagoDividido) return `Pagó ${formaPago}`
   if (necesitaDividirPago(formaPago)) return `Pago pendiente de dividir (${formaPago})`
+  // "Transferencia debe" no es lo mismo que "Pago transferencia": acá el
+  // cliente todavía no transfirió, no hay que decir "Pagó".
+  if (/^transferencia debe$/i.test(formaPago)) return 'Debe transferencia'
+  if (/^pago transferencia$/i.test(formaPago)) return 'Pagó transferencia'
   if (/pagad[oa]/i.test(formaPago)) return 'Ya pagado'
   if (/solo entrega/i.test(formaPago)) return 'Sin cobro (solo entrega)'
   if (/efectivo/i.test(formaPago)) {

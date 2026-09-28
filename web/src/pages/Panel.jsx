@@ -74,7 +74,7 @@ function ColumnaChofer({ chofer, fecha }) {
                   {formatoPago(formaPago, monto, item.pago_dividido)}
                 </div>
               </div>
-              {item.estado === 'entregado' && (
+              {(item.estado === 'entregado' || item.estado === 'en_espera') && (
                 <BotonCopiar
                   texto={resumenParaCopiar({
                     litros,
@@ -84,6 +84,7 @@ function ColumnaChofer({ chofer, fecha }) {
                     monto,
                     multiproducto: p.multiproducto,
                     pagoDividido: item.pago_dividido,
+                    entregado: item.estado === 'entregado',
                   })}
                   copiado={copiados.has(p.id)}
                   onCopiado={() => marcarCopiado(p.id)}

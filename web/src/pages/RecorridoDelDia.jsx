@@ -83,9 +83,9 @@ export default function RecorridoDelDia() {
                 {textoCantidadProducto(item)} · {formatoPago(item.formaPago, item.monto, item.pagoDividido)}
               </div>
             </div>
-            {item.estado === 'entregado' && (
+            {(item.estado === 'entregado' || item.estado === 'en_espera') && (
               <BotonCopiar
-                texto={resumenParaCopiar(item)}
+                texto={resumenParaCopiar({ ...item, entregado: item.estado === 'entregado' })}
                 copiado={copiados.has(item.id)}
                 onCopiado={() => marcarCopiado(item.id)}
               />

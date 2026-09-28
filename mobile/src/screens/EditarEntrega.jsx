@@ -9,7 +9,7 @@ import {
   combinarPagoDividido,
 } from '../lib/formato'
 
-const OPCIONES_PAGO = ['Efectivo', 'Transferencia', 'Ya pagado']
+const OPCIONES_PAGO = ['Efectivo', 'Pago transferencia', 'Transferencia debe', 'Ya pagado']
 // Los productos reales que vimos en la planilla van más allá de MO/AO.
 const OPCIONES_PRODUCTO = ['SEDA MO', 'SEDA AO', 'LOT', 'ARECO', 'SEDA OLIVA']
 

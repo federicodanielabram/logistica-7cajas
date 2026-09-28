@@ -86,6 +86,11 @@ export default function App() {
   const [ruta, setRuta] = useState([]) // post-arranque, respaldado en `parada_chofer`
   const [historial, setHistorial] = useState([]) // para "Volver atrás"
   const [bufferEdicion, setBufferEdicion] = useState(null)
+  // true cuando "editar" se abrió desde un punto verde de "Elegí tus
+  // paradas" (una entrega de una tanda anterior, ya cerrada) en vez de desde
+  // el flujo normal de confirmar una entrega en curso — cambia adónde vuelve
+  // "Siguiente" y a qué le pega el guardado (ver `onGuardarPuntoPrevio`).
+  const [editandoPuntoPrevio, setEditandoPuntoPrevio] = useState(false)
 
   // Botón/gesto "atrás" de Android: se registra UNA SOLA VEZ (nunca se
   // vuelve a registrar) para evitar los quilombos de antes. Usa refs para
@@ -95,6 +100,14 @@ export default function App() {
   const pantallaRef = useRef(pantalla)
   useEffect(() => {
     pantallaRef.current = pantalla
+  })
+
+  // Mismo motivo que `pantallaRef`: el handler de "atrás" se registra una
+  // sola vez, así que necesita leer el valor fresco de acá en vez de cerrar
+  // sobre el de cuando se montó.
+  const editandoPuntoPrevioRef = useRef(editandoPuntoPrevio)
+  useEffect(() => {
+    editandoPuntoPrevioRef.current = editandoPuntoPrevio
   })
 
   // `onVolverAUltimo` se define más abajo en el componente (function
@@ -126,7 +139,7 @@ export default function App() {
           setPantalla('yendo')
           break
         case 'editar':
-          setPantalla('resumen')
+          setPantalla(editandoPuntoPrevioRef.current ? 'seleccionar' : 'resumen')
           break
         case 'reordenar_ruta':
           setPantalla('agregar_paradas')
@@ -208,10 +221,12 @@ export default function App() {
   // Se usa al elegir chofer y también cada vez que se vuelve a "Seleccionar
   // paradas" o "Agregar paradas" en pleno reparto, para traer pedidos nuevos
   // que el vendedor haya cargado mientras tanto. También trae, para el
-  // chofer actual, el estado de cualquier parada que ya haya resuelto hoy en
-  // una tanda anterior (por ejemplo si cerró el día y volvió a elegir su
-  // nombre para sumar más entregas) — así "Elegí tus paradas" puede seguir
-  // mostrando en verde/rojo lo que ya hizo en vez de mostrarlo como si nada.
+  // chofer actual, la fila completa de `parada_chofer` de cualquier parada
+  // que ya haya resuelto hoy en una tanda anterior (por ejemplo si cerró el
+  // día y volvió a elegir su nombre para sumar más entregas) — así "Elegí
+  // tus paradas" puede seguir mostrando en verde/rojo lo que ya hizo (en vez
+  // de mostrarlo como si nada) y, si fue una entrega, dejarla tocar para
+  // editar litros/producto/pago sin tener que reabrir el día.
   async function cargarParadasDelDia(choferId = chofer?.id) {
     const { data } = await supabase
       .from('parada')
@@ -219,17 +234,23 @@ export default function App() {
       .eq('fecha', fecha)
       .order('orden_planilla', { ascending: true })
 
-    let estadoPrevioPorParada = {}
+    let previoPorParada = {}
     if (choferId) {
       const { data: previas } = await supabase
         .from('parada_chofer')
-        .select('parada_id, estado')
+        .select('*')
         .eq('chofer_id', choferId)
         .eq('fecha', fecha)
-      estadoPrevioPorParada = Object.fromEntries((previas ?? []).map((p) => [p.parada_id, p.estado]))
+      previoPorParada = Object.fromEntries((previas ?? []).map((p) => [p.parada_id, p]))
     }
 
-    setParadasDelDia((data ?? []).map((p) => ({ ...p, estado_previo: estadoPrevioPorParada[p.id] ?? null })))
+    setParadasDelDia(
+      (data ?? []).map((p) => ({
+        ...p,
+        estado_previo: previoPorParada[p.id]?.estado ?? null,
+        previo: previoPorParada[p.id] ?? null,
+      }))
+    )
   }
 
   async function onElegirChofer(choferElegido) {
@@ -259,6 +280,47 @@ export default function App() {
 
     await cargarParadasDelDia(choferElegido.id)
     setSeleccionadas(new Set())
+    setPantalla('seleccionar')
+  }
+
+  // Tocar un punto verde en "Elegí tus paradas" abre su edición — para
+  // corregir una entrega de una tanda anterior (día cerrado y reabierto)
+  // que quedó mal cargada, sin tener que reabrir todo el día.
+  function onEditarPuntoPrevio(parada) {
+    const previo = parada.previo
+    if (!previo || previo.estado !== 'entregado') return
+    setBufferEdicion({
+      itemId: previo.id,
+      cliente: parada.cliente,
+      litros: previo.litros_confirmado,
+      producto: previo.producto_confirmado,
+      multiproducto: previo.multiproducto,
+      formaPago: previo.forma_pago_confirmada,
+      monto: previo.monto_confirmado,
+      pagoDividido: previo.pago_dividido,
+    })
+    setEditandoPuntoPrevio(true)
+    setPantalla('editar')
+  }
+
+  // A diferencia de `onConfirmarResumen` (que opera sobre `ruta`, la
+  // entrega en curso), esto guarda directo en la base: el punto editado no
+  // es parte del recorrido activo, es de una tanda ya cerrada.
+  async function onGuardarPuntoPrevio(buffer) {
+    const cambios = {
+      litros_confirmado: buffer.litros,
+      producto_confirmado: buffer.producto,
+      forma_pago_confirmada: buffer.formaPago,
+      monto_confirmado: buffer.monto,
+      pago_dividido: buffer.pagoDividido,
+      editado: true,
+    }
+    await supabase.from('parada_chofer').update(cambios).eq('id', buffer.itemId)
+    setParadasDelDia((prev) =>
+      prev.map((p) => (p.previo?.id === buffer.itemId ? { ...p, previo: { ...p.previo, ...cambios } } : p))
+    )
+    setBufferEdicion(null)
+    setEditandoPuntoPrevio(false)
     setPantalla('seleccionar')
   }
 
@@ -424,6 +486,27 @@ export default function App() {
     setPantalla('resumen')
   }
 
+  // Tocar una parada verde en "Reordenar lista" abre su edición directo,
+  // sin pasar por Resumen — a diferencia de "↩ Volver atrás" (que solo
+  // llega al último punto del historial), esto permite corregir cualquier
+  // entrega ya confirmada, esté donde esté en la ruta.
+  function onEditarDesdeOrden(itemId) {
+    const item = ruta.find((i) => i.id === itemId)
+    if (!item || item.estado !== 'entregado') return
+    setBufferEdicion({
+      itemId: item.id,
+      cliente: item.cliente,
+      litros: item.litros_confirmado,
+      producto: item.producto_confirmado,
+      multiproducto: item.multiproducto,
+      formaPago: item.forma_pago_confirmada,
+      monto: item.monto_confirmado,
+      pagoDividido: item.pago_dividido,
+    })
+    setEditandoPuntoPrevio(false) // este es el flujo normal (ruta activa), no el de un punto de una tanda ya cerrada
+    setPantalla('editar')
+  }
+
   async function onConfirmarResumen() {
     const original = ruta.find((i) => i.id === bufferEdicion.itemId)
     const editado =
@@ -511,6 +594,7 @@ export default function App() {
         paradas={paradasDelDia}
         seleccionadas={seleccionadas}
         onToggle={onToggleParada}
+        onEditarPrevio={onEditarPuntoPrevio}
         onSiguiente={onSiguienteSeleccion}
       />
     )
@@ -542,17 +626,30 @@ export default function App() {
   }
 
   if (pantalla === 'resumen' && bufferEdicion) {
-    return <ResumenEntrega buffer={bufferEdicion} onSiguiente={onConfirmarResumen} onEditar={() => setPantalla('editar')} />
+    return (
+      <ResumenEntrega
+        buffer={bufferEdicion}
+        onSiguiente={onConfirmarResumen}
+        onEditar={() => {
+          setEditandoPuntoPrevio(false)
+          setPantalla('editar')
+        }}
+      />
+    )
   }
 
   if (pantalla === 'editar' && bufferEdicion) {
     return (
       <EditarEntrega
         bufferInicial={bufferEdicion}
-        onListo={(buffer) => {
-          setBufferEdicion(buffer)
-          setPantalla('resumen')
-        }}
+        onListo={
+          editandoPuntoPrevio
+            ? onGuardarPuntoPrevio
+            : (buffer) => {
+                setBufferEdicion(buffer)
+                setPantalla('resumen')
+              }
+        }
       />
     )
   }
@@ -565,6 +662,7 @@ export default function App() {
         onQuitar={onQuitarDeRuta}
         onConfirmar={onConfirmarReordenamiento}
         tituloBoton="Siguiente"
+        onEditar={onEditarDesdeOrden}
       />
     )
   }

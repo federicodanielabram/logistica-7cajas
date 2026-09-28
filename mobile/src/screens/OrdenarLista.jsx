@@ -14,6 +14,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import Boton from '../components/Boton'
+import { resumenTexto } from '../lib/formato'
 
 const CLASE_ESTADO = { entregado: 'item-verde', descartado: 'item-rojo' }
 
@@ -42,14 +43,33 @@ function ItemArrastrable({ item, onQuitar }) {
   )
 }
 
-function ItemResuelto({ item }) {
+// Entregados quedan clickeables para reabrir su edición directamente (por si
+// el chofer se confundió al cargar litros/producto/pago y ya no es el último
+// punto resuelto, así que "↩ Volver atrás" en Yendo no llega hasta acá).
+// Descartados no tienen nada para editar, quedan solo como referencia.
+function ItemResuelto({ item, onEditar }) {
+  const editable = item.estado === 'entregado' && Boolean(onEditar)
+  const Tag = editable ? 'button' : 'div'
   return (
-    <div className={`item ${CLASE_ESTADO[item.estado]}`}>
+    <Tag className={`item ${CLASE_ESTADO[item.estado]}`} onClick={editable ? () => onEditar(item.id) : undefined}>
       <div>
-        <div className="item-nombre">{item.cliente}</div>
+        <div className="item-nombre">
+          {item.estado === 'entregado'
+            ? resumenTexto({
+                litros: item.litros_confirmado,
+                producto: item.producto_confirmado,
+                cliente: item.cliente,
+                formaPago: item.forma_pago_confirmada,
+                monto: item.monto_confirmado,
+                multiproducto: item.multiproducto,
+                pagoDividido: item.pago_dividido,
+              })
+            : item.cliente}
+        </div>
         {item.es_transporte && <div className="item-subtitulo">TRANS. {item.empresa_transporte}</div>}
       </div>
-    </div>
+      {editable && <span className="item-icono-btn">✎</span>}
+    </Tag>
   )
 }
 
@@ -59,7 +79,7 @@ function ItemResuelto({ item }) {
  * ("Reordenar lista"): ahí los ítems ya resueltos (verde/rojo) quedan fijos
  * al fondo, fuera del arrastre.
  */
-export default function OrdenarLista({ items, onReordenar, onQuitar, onConfirmar, tituloBoton }) {
+export default function OrdenarLista({ items, onReordenar, onQuitar, onConfirmar, tituloBoton, onEditar }) {
   const pendientes = items.filter((i) => i.estado === 'en_espera')
   const resueltos = items.filter((i) => i.estado !== 'en_espera')
 
@@ -93,7 +113,7 @@ export default function OrdenarLista({ items, onReordenar, onQuitar, onConfirmar
           </SortableContext>
         </DndContext>
         {resueltos.map((item) => (
-          <ItemResuelto key={item.id} item={item} />
+          <ItemResuelto key={item.id} item={item} onEditar={onEditar} />
         ))}
       </div>
       <Boton titulo={tituloBoton} onClick={onConfirmar} />

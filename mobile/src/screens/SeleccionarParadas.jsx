@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import Boton from '../components/Boton'
+import { resumenTexto } from '../lib/formato'
 
 const COLOR_ESTADO_PREVIO = { entregado: 'verde', descartado: 'rojo' }
 
-export default function SeleccionarParadas({ paradas, seleccionadas, onToggle, onSiguiente }) {
+export default function SeleccionarParadas({ paradas, seleccionadas, onToggle, onEditarPrevio, onSiguiente }) {
   const [busqueda, setBusqueda] = useState('')
 
   const filtradas = useMemo(() => {
@@ -26,22 +27,36 @@ export default function SeleccionarParadas({ paradas, seleccionadas, onToggle, o
           const marcado = seleccionadas.has(item.id)
           const colorPrevio = COLOR_ESTADO_PREVIO[item.estado_previo]
           const yaResuelta = Boolean(colorPrevio)
+          // Un punto ya entregado (de una tanda anterior del día) se puede
+          // tocar para corregirlo; uno descartado no tiene nada para editar.
+          const editable = item.estado_previo === 'entregado' && Boolean(onEditarPrevio)
           return (
             <button
               key={item.id}
               className={`item ${marcado ? 'item-marcado' : ''} ${colorPrevio ? `item-${colorPrevio}` : ''}`}
-              disabled={yaResuelta}
-              onClick={() => onToggle(item.id)}
+              disabled={yaResuelta && !editable}
+              onClick={editable ? () => onEditarPrevio(item) : () => onToggle(item.id)}
             >
               <div>
-                <div className="item-nombre">{item.cliente}</div>
+                <div className="item-nombre">
+                  {item.estado_previo === 'entregado'
+                    ? resumenTexto({
+                        litros: item.previo.litros_confirmado,
+                        producto: item.previo.producto_confirmado,
+                        cliente: item.cliente,
+                        formaPago: item.previo.forma_pago_confirmada,
+                        monto: item.previo.monto_confirmado,
+                        multiproducto: item.previo.multiproducto,
+                        pagoDividido: item.previo.pago_dividido,
+                      })
+                    : item.cliente}
+                </div>
                 {item.es_transporte && (
                   <div className="item-subtitulo">TRANS. {item.empresa_transporte}</div>
                 )}
               </div>
-              {yaResuelta && (
-                <span className="item-subtitulo">{item.estado_previo === 'entregado' ? 'Ya entregado' : 'Ya descartado'}</span>
-              )}
+              {editable && <span className="item-subtitulo">Tocá para editar</span>}
+              {item.estado_previo === 'descartado' && <span className="item-subtitulo">Ya descartado</span>}
             </button>
           )
         })}
