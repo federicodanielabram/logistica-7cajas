@@ -692,7 +692,7 @@ export default function App() {
           <img src={logo} alt="" className="header-chofer-logo" />
           <span className="header-chofer-texto">Logística de repartos</span>
         </div>
-        <span className="header-chofer-version">v1.2</span>
+        <span className="header-chofer-version">v1.3</span>
       </header>
       {pantallaActual()}
       <ActualizacionDisponible />
