@@ -74,7 +74,7 @@ function ColumnaChofer({ chofer, fecha }) {
                   {formatoPago(formaPago, monto, item.pago_dividido)}
                 </div>
               </div>
-              {(item.estado === 'entregado' || item.estado === 'en_espera') && (
+              {item.estado === 'entregado' && (
                 <BotonCopiar
                   texto={resumenParaCopiar({
                     litros,
