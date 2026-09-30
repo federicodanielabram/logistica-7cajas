@@ -26,10 +26,10 @@ export default function ActualizarRecorrido() {
     setSubiendo(true)
     setMensaje(null)
     try {
-      const { insertadas, protegidas } = await actualizarRecorrido(resultado.paradas, fecha)
-      let texto = `Recorrido actualizado: ${insertadas} paradas cargadas.`
-      if (protegidas > 0) {
-        texto += ` (${protegidas} ya en curso con un chofer que empezó su día no se tocaron.)`
+      const { insertadas, yaExistian } = await actualizarRecorrido(resultado.paradas, fecha)
+      let texto = `Recorrido actualizado: ${insertadas} parada(s) nueva(s) agregada(s).`
+      if (yaExistian > 0) {
+        texto += ` (${yaExistian} ya estaban cargadas, no se tocaron.)`
       }
       setMensaje({ tipo: 'ok', texto })
       setTexto('')

@@ -399,6 +399,21 @@ export default function App() {
       .from('chofer_dia')
       .upsert({ chofer_id: chofer.id, fecha, iniciado_en: new Date().toISOString() }, { onConflict: 'chofer_id,fecha' })
 
+    // Si ya habías arrancado antes y volviste a elegir tus paradas, tus
+    // filas en_espera de la vuelta anterior siguen en la base — insertarlas
+    // de nuevo chocaría contra el unique (parada_id, chofer_id) y "Empezar"
+    // quedaría roto para siempre. Las entregadas/descartadas no se tocan.
+    const { error: errorLimpieza } = await supabase
+      .from('parada_chofer')
+      .delete()
+      .eq('chofer_id', chofer.id)
+      .eq('fecha', fecha)
+      .eq('estado', 'en_espera')
+    if (errorLimpieza) {
+      alert('No se pudo arrancar el recorrido. Probá de nuevo en un momento.')
+      return
+    }
+
     const filas = ordenVigente.map((item, index) => ({
       parada_id: item.id,
       chofer_id: chofer.id,

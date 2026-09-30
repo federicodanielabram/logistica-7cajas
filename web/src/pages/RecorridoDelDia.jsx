@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { hoyISO } from '../lib/recorrido'
-import { formatoPago, resumenParaCopiar, textoCantidadProducto } from '../lib/formato'
+import { formatoPago, resumenParaCopiar, resumenPendienteParaCopiar, textoCantidadProducto } from '../lib/formato'
 import { useCopiados } from '../lib/useCopiados'
 import BotonCopiar from '../components/BotonCopiar'
 
@@ -45,6 +45,7 @@ export default function RecorridoDelDia() {
           producto: asig?.producto_confirmado ?? p.producto,
           formaPago: asig?.forma_pago_confirmada ?? p.forma_pago,
           monto: asig?.monto_confirmado ?? p.monto_efectivo,
+          total: p.total,
           multiproducto: p.multiproducto,
           pagoDividido: asig?.pago_dividido ?? false,
         }
@@ -85,7 +86,11 @@ export default function RecorridoDelDia() {
             </div>
             {(item.estado === 'entregado' || item.estado === 'en_espera') && (
               <BotonCopiar
-                texto={resumenParaCopiar({ ...item, entregado: item.estado === 'entregado' })}
+                texto={
+                  item.estado === 'entregado'
+                    ? resumenParaCopiar({ ...item, entregado: true })
+                    : resumenPendienteParaCopiar(item)
+                }
                 copiado={copiados.has(item.id)}
                 onCopiado={() => marcarCopiado(item.id)}
               />

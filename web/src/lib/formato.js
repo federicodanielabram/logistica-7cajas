@@ -71,3 +71,17 @@ export function resumenParaCopiar({ litros, producto, cliente, formaPago, monto,
   const cantidadProducto = multiproducto ? producto : `${litros ?? '—'}lts ${producto}`
   return `${cantidadProducto} — ${cliente} — ${formatoPagoChofer(formaPago, monto, pagoDividido, entregado)}`
 }
+
+/**
+ * Texto para el botón de copiar de los puntos amarillos (todavía sin
+ * entregar) en "Recorrido de hoy": litros, producto y método de pago con el
+ * monto total del pedido — sin el nombre del cliente. Acá el método de pago
+ * siempre es transferencia o efectivo, a diferencia de `formatoPagoChofer`
+ * no hace falta cubrir los demás casos (solo entrega, ya pagado, etc.).
+ */
+export function resumenPendienteParaCopiar({ litros, producto, multiproducto, formaPago, total }) {
+  const cantidadProducto = multiproducto ? producto : `${litros ?? '—'}lts ${producto}`
+  const metodo = /transferencia/i.test(formaPago || '') ? 'Transferencia' : 'Efectivo'
+  const monto = total ? ` $${Number(total).toLocaleString('es-AR')}` : ''
+  return `${cantidadProducto} — Método de pago: ${metodo}${monto}`
+}
