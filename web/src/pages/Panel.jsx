@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { hoyISO } from '../lib/recorrido'
 import { formatoPago, resumenParaCopiar, textoCantidadProducto } from '../lib/formato'
-import { useCopiados } from '../lib/useCopiados'
 import BotonCopiar from '../components/BotonCopiar'
 
 const ESTADO_COLOR = {
@@ -13,7 +12,10 @@ const ESTADO_COLOR = {
 
 function ColumnaChofer({ chofer, fecha }) {
   const [items, setItems] = useState([])
-  const [copiados, marcarCopiado] = useCopiados(`copiados_${fecha}`)
+
+  async function marcarCopiado(paradaId) {
+    await supabase.from('parada').update({ copiado: true }).eq('id', paradaId)
+  }
 
   async function cargar() {
     const { data, error } = await supabase
@@ -32,6 +34,11 @@ function ColumnaChofer({ chofer, fecha }) {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'parada_chofer', filter: `chofer_id=eq.${chofer.id}` },
+        () => cargar()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'parada', filter: `fecha=eq.${fecha}` },
         () => cargar()
       )
       .subscribe()
@@ -86,7 +93,7 @@ function ColumnaChofer({ chofer, fecha }) {
                     pagoDividido: item.pago_dividido,
                     entregado: item.estado === 'entregado',
                   })}
-                  copiado={copiados.has(p.id)}
+                  copiado={p.copiado}
                   onCopiado={() => marcarCopiado(p.id)}
                 />
               )}

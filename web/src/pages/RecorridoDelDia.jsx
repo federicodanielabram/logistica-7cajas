@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { hoyISO } from '../lib/recorrido'
 import { formatoPago, resumenParaCopiar, resumenPendienteParaCopiar, textoCantidadProducto } from '../lib/formato'
-import { useCopiados } from '../lib/useCopiados'
 import BotonCopiar from '../components/BotonCopiar'
 
 const ESTADO_COLOR = { en_espera: 'amarillo', entregado: 'verde', descartado: 'rojo' }
@@ -13,7 +12,10 @@ const PRIORIDAD_ESTADO = { entregado: 2, descartado: 1, en_espera: 0 }
 export default function RecorridoDelDia() {
   const [items, setItems] = useState([])
   const fecha = hoyISO()
-  const [copiados, marcarCopiado] = useCopiados(`copiados_${fecha}`)
+
+  async function marcarCopiado(id) {
+    await supabase.from('parada').update({ copiado: true }).eq('id', id)
+  }
 
   async function cargar() {
     const { data: paradas } = await supabase
@@ -46,6 +48,7 @@ export default function RecorridoDelDia() {
           formaPago: asig?.forma_pago_confirmada ?? p.forma_pago,
           monto: asig?.monto_confirmado ?? p.monto_efectivo,
           total: p.total,
+          copiado: p.copiado,
           multiproducto: p.multiproducto,
           pagoDividido: asig?.pago_dividido ?? false,
         }
@@ -91,7 +94,7 @@ export default function RecorridoDelDia() {
                     ? resumenParaCopiar({ ...item, entregado: true })
                     : resumenPendienteParaCopiar(item)
                 }
-                copiado={copiados.has(item.id)}
+                copiado={item.copiado}
                 onCopiado={() => marcarCopiado(item.id)}
               />
             )}
