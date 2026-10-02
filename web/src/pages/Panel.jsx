@@ -78,7 +78,7 @@ function ColumnaChofer({ chofer, fecha }) {
                 {p.es_transporte && <div className="subtitulo-chico">TRANS. {p.empresa_transporte}</div>}
                 <div className="item-detalle">
                   {textoCantidadProducto({ litros, producto, multiproducto: p.multiproducto })} ·{' '}
-                  {formatoPago(formaPago, monto, item.pago_dividido)}
+                  {formatoPago(formaPago, monto, item.pago_dividido, p.total)}
                 </div>
               </div>
               {item.estado === 'entregado' && (

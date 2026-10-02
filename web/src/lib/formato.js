@@ -6,17 +6,22 @@ export function necesitaDividirPago(formaPago) {
   return /efectivo/i.test(formaPago) && /transferencia/i.test(formaPago)
 }
 
-/** Texto del método de pago para mostrar en checklist / resumen. */
-export function formatoPago(formaPago, monto, pagoDividido) {
+/**
+ * Texto del método de pago para mostrar en checklist / resumen. `total` es
+ * el monto del pedido tal cual sale de la planilla — se usa como monto a
+ * mostrar en transferencia, que a diferencia de efectivo nunca tiene un
+ * `monto` propio cargado (ver `mobile/src/screens/EditarEntrega.jsx`).
+ */
+export function formatoPago(formaPago, monto, pagoDividido, total) {
   if (!formaPago) return '—'
   if (pagoDividido) return formaPago // ya viene armado: "Efectivo ($X) + Transferencia ($Y)"
   if (necesitaDividirPago(formaPago)) return `${formaPago} (a dividir)`
-  if (/pagad[oa]/i.test(formaPago)) return 'Ya pagado'
+  if (/pagad[oa]/i.test(formaPago)) return 'Pagado'
   if (/solo entrega/i.test(formaPago)) return 'Sin cobro (solo entrega)'
   if (/efectivo/i.test(formaPago)) {
     return monto ? `Efectivo ($${Number(monto).toLocaleString('es-AR')})` : 'Efectivo'
   }
-  return formaPago
+  return total ? `${formaPago} $${Number(total).toLocaleString('es-AR')}` : formaPago
 }
 
 // Duplica a propósito mobile/src/lib/formato.js (formatoPago + resumenTexto): el botón de
@@ -31,7 +36,7 @@ function formatoPagoChofer(formaPago, monto, pagoDividido, entregado = true) {
   if (!entregado) {
     if (pagoDividido) return `Método de pago: ${formaPago}`
     if (necesitaDividirPago(formaPago)) return `Método de pago: Pendiente de dividir (${formaPago})`
-    if (/pagad[oa]/i.test(formaPago)) return 'Método de pago: Ya pagado'
+    if (/pagad[oa]/i.test(formaPago)) return 'Método de pago: Pagado'
     if (/solo entrega/i.test(formaPago)) return 'Método de pago: Sin cobro (solo entrega)'
     if (/efectivo/i.test(formaPago)) {
       return monto ? `Método de pago: Efectivo $${Number(monto).toLocaleString('es-AR')}` : 'Método de pago: Efectivo'
@@ -40,15 +45,25 @@ function formatoPagoChofer(formaPago, monto, pagoDividido, entregado = true) {
   }
   if (pagoDividido) return `Pagó ${formaPago}`
   if (necesitaDividirPago(formaPago)) return `Pago pendiente de dividir (${formaPago})`
-  // "Transferencia debe" no es lo mismo que "Pago transferencia": acá el
-  // cliente todavía no transfirió, no hay que decir "Pagó".
-  if (/^transferencia debe$/i.test(formaPago)) return 'Debe transferencia'
-  if (/^pago transferencia$/i.test(formaPago)) return 'Pagó transferencia'
-  if (/pagad[oa]/i.test(formaPago)) return 'Ya pagado'
+  // "Transferencia pendiente pago" no es lo mismo que "Transferencia paga":
+  // acá el cliente todavía no transfirió, no hay que decir "Pagó". Ninguna
+  // de las dos lleva monto: a diferencia del amarillo, acá el monto solo
+  // importa para efectivo (lo que el chofer realmente cobró en mano).
+  if (/^transferencia pendiente pago$/i.test(formaPago)) return formaPago
+  // Ya viene armado tal cual se tiene que mostrar: "Transferencia paga (pedir comprobante)".
+  if (/^transferencia paga/i.test(formaPago)) return formaPago
+  // Chequear antes que el "solo entrega" genérico de más abajo: ese es el
+  // "sin cobro" de la planilla, este es un estado distinto que el chofer
+  // elige a propósito al entregar.
+  if (/^solo entrega \(debe\)$/i.test(formaPago)) return `Método de pago: ${formaPago}`
+  if (/^bonificad/i.test(formaPago)) return `Método de pago: ${formaPago}`
+  if (/pagad[oa]/i.test(formaPago)) return 'Pagado'
   if (/solo entrega/i.test(formaPago)) return 'Sin cobro (solo entrega)'
   if (/efectivo/i.test(formaPago)) {
     return monto ? `Pagó efectivo $${Number(monto).toLocaleString('es-AR')}` : 'Pagó efectivo'
   }
+  // Transferencia tal cual la dejó la planilla, sin que el chofer la edite.
+  if (/transferencia/i.test(formaPago)) return 'Pagó transferencia'
   return `Pagó por ${formaPago.toLowerCase()}`
 }
 
@@ -74,14 +89,21 @@ export function resumenParaCopiar({ litros, producto, cliente, formaPago, monto,
 
 /**
  * Texto para el botón de copiar de los puntos amarillos (todavía sin
- * entregar) en "Recorrido de hoy": litros, producto y método de pago con el
- * monto total del pedido — sin el nombre del cliente. Acá el método de pago
- * siempre es transferencia o efectivo, a diferencia de `formatoPagoChofer`
- * no hace falta cubrir los demás casos (solo entrega, ya pagado, etc.).
+ * entregar) en "Recorrido de hoy": litros, producto y método de pago — sin
+ * el nombre del cliente. "Pagado" y "Solo entrega" se tratan igual (no hay
+ * nada que cobrar al entregar, no llevan monto); efectivo y transferencia sí
+ * llevan el monto total del pedido.
  */
 export function resumenPendienteParaCopiar({ litros, producto, multiproducto, formaPago, total }) {
   const cantidadProducto = multiproducto ? producto : `${litros ?? '—'}lts ${producto}`
-  const metodo = /transferencia/i.test(formaPago || '') ? 'Transferencia' : 'Efectivo'
-  const monto = total ? ` $${Number(total).toLocaleString('es-AR')}` : ''
-  return `${cantidadProducto} — Método de pago: ${metodo}${monto}`
+  const pago = formaPago || ''
+  let metodo
+  if (/pagad[oa]/i.test(pago) || /solo entrega/i.test(pago)) {
+    metodo = 'Sin cobro (solo entrega)'
+  } else if (/transferencia/i.test(pago)) {
+    metodo = total ? `Transferencia $${Number(total).toLocaleString('es-AR')}` : 'Transferencia'
+  } else {
+    metodo = total ? `Efectivo $${Number(total).toLocaleString('es-AR')}` : 'Efectivo'
+  }
+  return `${cantidadProducto} — Método de pago: ${metodo}`
 }

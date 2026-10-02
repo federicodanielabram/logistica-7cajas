@@ -14,20 +14,32 @@ export function necesitaDividirPago(formaPago) {
   return /efectivo/i.test(formaPago) && /transferencia/i.test(formaPago)
 }
 
-/** Texto del método de pago para mostrar en el resumen de entrega. */
+/**
+ * Texto del método de pago para mostrar en el resumen de entrega. El monto
+ * solo importa para efectivo (lo que el chofer realmente cobró en mano) —
+ * transferencia nunca lo lleva, haya o no haya transferido todavía.
+ */
 export function formatoPago(formaPago, monto, pagoDividido) {
   if (!formaPago) return '—'
   if (pagoDividido) return `Pagó ${formaPago}`
   if (necesitaDividirPago(formaPago)) return `Pago pendiente de dividir (${formaPago})`
-  // "Transferencia debe" no es lo mismo que "Pago transferencia": acá el
-  // cliente todavía no transfirió, no hay que decir "Pagó".
-  if (/^transferencia debe$/i.test(formaPago)) return 'Debe transferencia'
-  if (/^pago transferencia$/i.test(formaPago)) return 'Pagó transferencia'
-  if (/pagad[oa]/i.test(formaPago)) return 'Ya pagado'
+  // "Transferencia pendiente pago" no es lo mismo que "Transferencia paga":
+  // acá el cliente todavía no transfirió, no hay que decir "Pagó".
+  if (/^transferencia pendiente pago$/i.test(formaPago)) return formaPago
+  // Ya viene armado tal cual se tiene que mostrar: "Transferencia paga (pedir comprobante)".
+  if (/^transferencia paga/i.test(formaPago)) return formaPago
+  // Chequear antes que el "solo entrega" genérico de más abajo: ese es el
+  // "sin cobro" de la planilla, este es un estado distinto que el chofer
+  // elige a propósito al entregar.
+  if (/^solo entrega \(debe\)$/i.test(formaPago)) return `Método de pago: ${formaPago}`
+  if (/^bonificad/i.test(formaPago)) return `Método de pago: ${formaPago}`
+  if (/pagad[oa]/i.test(formaPago)) return 'Pagado'
   if (/solo entrega/i.test(formaPago)) return 'Sin cobro (solo entrega)'
   if (/efectivo/i.test(formaPago)) {
     return monto ? `Pagó efectivo $${Number(monto).toLocaleString('es-AR')}` : 'Pagó efectivo'
   }
+  // Transferencia tal cual la dejó la planilla, sin que el chofer la edite.
+  if (/transferencia/i.test(formaPago)) return 'Pagó transferencia'
   return `Pagó por ${formaPago.toLowerCase()}`
 }
 

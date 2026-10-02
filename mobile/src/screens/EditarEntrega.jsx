@@ -9,7 +9,13 @@ import {
   combinarPagoDividido,
 } from '../lib/formato'
 
-const OPCIONES_PAGO = ['Efectivo', 'Pago transferencia', 'Transferencia debe', 'Ya pagado']
+const OPCIONES_PAGO = [
+  'Efectivo',
+  'Transferencia paga (pedir comprobante)',
+  'Transferencia pendiente pago',
+  'Solo entrega (debe)',
+  'Pagado',
+]
 // Los productos reales que vimos en la planilla van más allá de MO/AO.
 const OPCIONES_PRODUCTO = ['SEDA MO', 'SEDA AO', 'LOT', 'ARECO', 'SEDA OLIVA']
 
@@ -171,6 +177,7 @@ export default function EditarEntrega({ bufferInicial, onListo }) {
             variante="secundario"
             onClick={() => setSeccion({ tipo: 'pago_dividir' })}
           />
+          <Boton titulo="Bonificado" variante="secundario" onClick={() => elegirPago('Bonificado')} />
         </div>
       )}
 

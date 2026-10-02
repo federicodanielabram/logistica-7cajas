@@ -84,7 +84,8 @@ export default function RecorridoDelDia() {
               </div>
               {item.es_transporte && <div className="subtitulo-chico">TRANS. {item.empresa_transporte}</div>}
               <div className="item-detalle">
-                {textoCantidadProducto(item)} · {formatoPago(item.formaPago, item.monto, item.pagoDividido)}
+                {textoCantidadProducto(item)} ·{' '}
+                {formatoPago(item.formaPago, item.monto, item.pagoDividido, item.total)}
               </div>
             </div>
             {(item.estado === 'entregado' || item.estado === 'en_espera') && (
