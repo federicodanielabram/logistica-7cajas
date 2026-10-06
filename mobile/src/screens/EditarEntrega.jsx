@@ -18,6 +18,11 @@ const OPCIONES_PAGO = [
 ]
 // Los productos reales que vimos en la planilla van más allá de MO/AO.
 const OPCIONES_PRODUCTO = ['SEDA MO', 'SEDA AO', 'LOT', 'ARECO', 'SEDA OLIVA']
+// Solo el segundo producto (o siguientes) puede quedar en "Ninguno" — el
+// primero es obligatorio, toda parada tiene al menos un producto real.
+function opcionesProducto(indice) {
+  return indice === 0 ? OPCIONES_PRODUCTO : [...OPCIONES_PRODUCTO, 'Ninguno']
+}
 
 function Fila({ etiqueta, valor, onCambiar }) {
   return (
@@ -55,7 +60,14 @@ export default function EditarEntrega({ bufferInicial, onListo }) {
   const [montoTexto, setMontoTexto] = useState(bufferInicial.monto ? String(bufferInicial.monto) : '')
 
   function elegirLinea(indice, campo, valor) {
-    setLineas((ls) => ls.map((l, i) => (i === indice ? { ...l, [campo]: valor } : l)))
+    setLineas((ls) =>
+      ls.map((l, i) => {
+        if (i !== indice) return l
+        // "Ninguno" anula el producto: sus litros dejan de tener sentido.
+        if (campo === 'producto' && valor === 'Ninguno') return { ...l, producto: valor, litros: null }
+        return { ...l, [campo]: valor }
+      })
+    )
     setSeccion(null)
   }
 
@@ -96,11 +108,19 @@ export default function EditarEntrega({ bufferInicial, onListo }) {
   }
 
   function confirmar() {
-    const multiproducto = lineas.length > 1
+    // Las líneas en "Ninguno" no cuentan: ni litros ni producto. El flag
+    // multiproducto queda fijo al de la parada original (no se recalcula
+    // por cuántas líneas válidas queden) porque el resto del sistema
+    // (Panel, Recorrido de hoy, Historial) sigue leyendo `parada.multiproducto`
+    // tal cual vino de la planilla, no lo que se guarde acá.
+    const lineasValidas = lineas.filter((l) => l.producto !== 'Ninguno')
+    const multiproducto = bufferInicial.multiproducto
     onListo({
       ...bufferInicial,
-      litros: multiproducto ? lineas.reduce((acc, l) => acc + (l.litros || 0), 0) : lineas[0].litros,
-      producto: multiproducto ? combinarProductos(lineas) : lineas[0].producto,
+      litros: multiproducto
+        ? lineasValidas.reduce((acc, l) => acc + (l.litros || 0), 0)
+        : lineasValidas[0].litros,
+      producto: multiproducto ? combinarProductos(lineasValidas) : lineasValidas[0].producto,
       multiproducto,
       formaPago,
       monto,
@@ -155,7 +175,7 @@ export default function EditarEntrega({ bufferInicial, onListo }) {
 
       {seccion?.tipo === 'producto' && (
         <div className="lista">
-          {OPCIONES_PRODUCTO.map((v) => (
+          {opcionesProducto(seccion.indice).map((v) => (
             <button
               key={v}
               className={`item ${v === lineas[seccion.indice].producto ? 'item-marcado' : ''}`}

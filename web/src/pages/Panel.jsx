@@ -14,7 +14,7 @@ function ColumnaChofer({ chofer, fecha }) {
   const [items, setItems] = useState([])
 
   async function marcarCopiado(paradaId) {
-    await supabase.from('parada').update({ copiado: true }).eq('id', paradaId)
+    await supabase.from('parada').update({ copiado_entregado: true }).eq('id', paradaId)
   }
 
   async function cargar() {
@@ -93,7 +93,7 @@ function ColumnaChofer({ chofer, fecha }) {
                     pagoDividido: item.pago_dividido,
                     entregado: item.estado === 'entregado',
                   })}
-                  copiado={p.copiado}
+                  copiado={p.copiado_entregado}
                   onCopiado={() => marcarCopiado(p.id)}
                 />
               )}

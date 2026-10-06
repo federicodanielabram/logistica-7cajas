@@ -13,8 +13,8 @@ export default function RecorridoDelDia() {
   const [items, setItems] = useState([])
   const fecha = hoyISO()
 
-  async function marcarCopiado(id) {
-    await supabase.from('parada').update({ copiado: true }).eq('id', id)
+  async function marcarCopiado(id, columna) {
+    await supabase.from('parada').update({ [columna]: true }).eq('id', id)
   }
 
   async function cargar() {
@@ -48,7 +48,8 @@ export default function RecorridoDelDia() {
           formaPago: asig?.forma_pago_confirmada ?? p.forma_pago,
           monto: asig?.monto_confirmado ?? p.monto_efectivo,
           total: p.total,
-          copiado: p.copiado,
+          copiadoPendiente: p.copiado_pendiente,
+          copiadoEntregado: p.copiado_entregado,
           multiproducto: p.multiproducto,
           pagoDividido: asig?.pago_dividido ?? false,
         }
@@ -95,8 +96,10 @@ export default function RecorridoDelDia() {
                     ? resumenParaCopiar({ ...item, entregado: true })
                     : resumenPendienteParaCopiar(item)
                 }
-                copiado={item.copiado}
-                onCopiado={() => marcarCopiado(item.id)}
+                copiado={item.estado === 'entregado' ? item.copiadoEntregado : item.copiadoPendiente}
+                onCopiado={() =>
+                  marcarCopiado(item.id, item.estado === 'entregado' ? 'copiado_entregado' : 'copiado_pendiente')
+                }
               />
             )}
           </li>
