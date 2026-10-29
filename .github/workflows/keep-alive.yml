@@ -10,7 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping de lectura a Supabase (evita pausa por inactividad)
+        env:
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           curl -s -o /dev/null -w "HTTP %{http_code}\n" \
             "https://rwoyjovqpwqkkpekrzxr.supabase.co/rest/v1/chofer?select=id&limit=1" \
-            -H "apikey: sb_publishable_x3ut_I5QQId9z0w66JQsDg_AQ-3C-ub"
+            -H "apikey: $SUPABASE_ANON_KEY"
