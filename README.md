@@ -1,86 +1,87 @@
 # Logística 7 Cajas — v2
 
-Sistema de reparto de aceite. La planilla de Google Sheets que ya arma el vendedor sigue siendo
-la fuente de la verdad del recorrido del día — este sistema no la reemplaza, se conecta a ella
-por copy-paste manual (sin ninguna cuenta ni API de Google).
+Oil delivery system. The Google Sheets spreadsheet the salesperson already builds remains
+the source of truth for the day's route — this system doesn't replace it, it connects to it
+via manual copy-paste (no Google account or API involved).
 
-## Cómo funciona, de punta a punta
+## How it works, end to end
 
-1. El vendedor arma el recorrido del día en Sheets, como siempre (una pestaña por día).
-2. Selecciona toda la pestaña (**Ctrl+A**), copia (**Ctrl+C**).
-3. Entra al panel web, pega el contenido y presiona **"Actualizar recorrido"**. La web muestra
-   una vista previa de lo que interpretó antes de confirmar.
-4. Los choferes (Tito / Meme) abren la app del celular, se identifican, eligen a mano cuáles de
-   todos los destinos del día son suyos, ordenan su recorrido y presionan "Empezar".
-5. A medida que entregan, el panel web se actualiza en vivo (checklist por chofer: amarillo =
-   en espera, verde = entregado, rojo = descartado).
+1. The salesperson builds the day's route in Sheets, as always (one tab per day).
+2. Selects the whole tab (**Ctrl+A**), copies it (**Ctrl+C**).
+3. Opens the web panel, pastes the content, and presses **"Update route"**. The site shows
+   a preview of what it parsed before confirming.
+4. The drivers (Tito / Meme) open the phone app, identify themselves, manually pick which
+   of the day's destinations are theirs, order their route, and press "Start".
+5. As they make deliveries, the web panel updates live (per-driver checklist: yellow =
+   pending, green = delivered, red = skipped).
 
-Ver la memoria del proyecto (`project_logistica_7cajas.md` en la memoria de Claude) para la
-especificación completa del flujo — quedó ahí registrada tras una sesión larga de diseño.
+See the project memory (`project_logistica_7cajas.md` in Claude's memory) for the
+full flow spec — it was recorded there after a long design session.
 
 ## Stack
 
-- **Base de datos**: Supabase (PostgreSQL + Auth + Realtime)
-- **Web**: React + Vite, hosteado en **Vercel**
+- **Database**: Supabase (PostgreSQL + Auth + Realtime)
+- **Web**: React + Vite, hosted on **Vercel**
 - **Mobile**: Expo (React Native)
-- **Cero dependencia de Google** (ni API ni OAuth) en ningún punto del sistema
+- **Zero Google dependency** (no API or OAuth) anywhere in the system
 
 ---
 
 ## 1. Supabase
 
-1. Crear un proyecto nuevo en [supabase.com](https://supabase.com) (gratis).
-2. En el SQL Editor, correr `supabase/migrations/001_schema.sql`.
-3. Anotar la `Project URL` y la `anon public key` (Settings → API).
-4. En **Authentication → Users**, crear a mano las cuentas (mail + contraseña) de quienes van a
-   entrar al panel web. No hay auto-registro: solo entra quien tiene una cuenta creada ahí.
-5. En **Authentication → Settings**, deshabilitar "Allow new users to sign up" para que nadie
-   más pueda crearse una cuenta propia.
+1. Create a new project at [supabase.com](https://supabase.com) (free).
+2. In the SQL Editor, run `supabase/migrations/001_schema.sql`.
+3. Note down the `Project URL` and the `anon public key` (Settings → API).
+4. Under **Authentication → Users**, manually create accounts (email + password) for whoever
+   will log into the web panel. There's no self-signup: only someone with an account created
+   there can log in.
+5. Under **Authentication → Settings**, disable "Allow new users to sign up" so no one else
+   can create their own account.
 
-## 2. Web (panel vendedor/admin)
+## 2. Web (salesperson/admin panel)
 
 ```bash
 cd web
 cp .env.example .env
-# Completar VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY
+# Fill in VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
 npm install
 npm run dev
 ```
 
-Pantallas:
-- `/` — Actualizar recorrido (pegar planilla, vista previa, confirmar)
-- `/panel` — Checklist en vivo por chofer
+Screens:
+- `/` — Update route (paste spreadsheet, preview, confirm)
+- `/panel` — Live per-driver checklist
 
-Para publicarla, conectar el repo a [Vercel](https://vercel.com) apuntando a la carpeta `web/`
-(Framework preset: Vite) y cargar las mismas variables de entorno ahí.
+To deploy it, connect the repo to [Vercel](https://vercel.com) pointing at the `web/` folder
+(Framework preset: Vite) and load the same environment variables there.
 
-## 3. Mobile (app del chofer)
+## 3. Mobile (driver app)
 
 ```bash
 cd mobile
 cp .env.example .env
-# Completar EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY
+# Fill in EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY
 npm install
-npx expo install --fix   # alinea versiones al SDK de Expo disponible
+npx expo install --fix   # aligns versions to the available Expo SDK
 npx expo start
 ```
 
-Instalar en el celu con **Expo Go**, escaneando el QR. No requiere login — la identidad
-(Tito/Meme) se elige en pantalla cada vez que se cierra el día.
+Install on the phone with **Expo Go**, scanning the QR code. No login required — the
+identity (Tito/Meme) is picked on screen each time the day is closed out.
 
 ---
 
-## Notas técnicas
+## Technical notes
 
-- El parser del pegado (`web/src/lib/parser.js`) es determinístico (no usa IA) — el orden de
-  columnas está fijado a partir de la planilla real. Si algún día cambia el formato de la
-  planilla, ese es el único archivo a tocar.
-- "Actualizar recorrido" congela las paradas que un chofer ya empezó a repartir ese día — no las
-  pisa aunque el vendedor vuelva a actualizar.
-- Reordenar el recorrido en el celular es con arrastre real (mantener presionado y deslizar),
-  vía `react-native-draggable-flatlist` + `react-native-gesture-handler` + `react-native-reanimated`.
-  Si al instalar dan problemas de versión, correr `npx expo install --fix` para que Expo alinee
-  todo al SDK que tengas.
-- Sin RLS estricto por usuario: tanto la web (tras login) como la app mobile (sin login) leen y
-  escriben con la misma clave `anon`. Es una simplificación consciente para el tamaño de este
-  proyecto — revisar si el negocio crece mucho.
+- The paste parser (`web/src/lib/parser.js`) is deterministic (no AI) — column order is
+  fixed based on the real spreadsheet. If the spreadsheet format ever changes, that's the
+  only file that needs to be touched.
+- "Update route" freezes the stops a driver has already started delivering that day — it
+  won't overwrite them even if the salesperson updates again.
+- Reordering the route on the phone uses real drag gestures (press and hold, then drag),
+  via `react-native-draggable-flatlist` + `react-native-gesture-handler` + `react-native-reanimated`.
+  If installing them causes version conflicts, run `npx expo install --fix` to let Expo align
+  everything to your SDK.
+- No strict per-user RLS: both the web app (after login) and the mobile app (no login) read
+  and write with the same `anon` key. This is a deliberate simplification given the project's
+  size — worth revisiting if the business grows significantly.
