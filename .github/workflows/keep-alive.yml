@@ -16,3 +16,14 @@ jobs:
           curl -s -o /dev/null -w "HTTP %{http_code}\n" \
             "https://rwoyjovqpwqkkpekrzxr.supabase.co/rest/v1/chofer?select=id&limit=1" \
             -H "apikey: $SUPABASE_ANON_KEY"
+
+      - name: Ping de escritura a Supabase (requiere tabla heartbeat, ver migración 007)
+        env:
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          curl -s -o /dev/null -w "HTTP %{http_code}\n" \
+            -X PATCH \
+            "https://rwoyjovqpwqkkpekrzxr.supabase.co/rest/v1/heartbeat?id=eq.1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"pinged_en\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
